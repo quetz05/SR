@@ -32,7 +32,10 @@
 
 # Project files
 .suo
-bin
-obj
+Client/bin
+Client/obj
+Server/bin
+Server/obj
 packages/
 TestResults/
+protobuf-net r668/

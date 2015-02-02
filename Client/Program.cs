@@ -4,18 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SR
+namespace Client
 {
     class Program
     {
         static void Main(string[] args)
         {
-
-
-            Server server = new Server();
+            Client client = new Client("localhost");
 
 
             Console.ReadKey();
+
+
         }
     }
 }

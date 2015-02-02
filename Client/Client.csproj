@@ -4,16 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BD1B7305-F93B-471A-BBB1-26DE7EFE065A}</ProjectGuid>
+    <ProjectGuid>{569FE284-B63C-4D7F-A4B6-95040B85B0F0}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SR</RootNamespace>
-    <AssemblyName>SR</AssemblyName>
+    <RootNamespace>Client</RootNamespace>
+    <AssemblyName>Client</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -52,13 +52,14 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="clrzmq, Version=2.2.0.0, Culture=neutral, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\clrzmq.2.2.5\lib\clrzmq.dll</HintPath>
+    <Reference Include="clrzmq">
+      <HintPath>..\SR\packages\clrzmq.2.2.5\lib\clrzmq.dll</HintPath>
     </Reference>
-    <Reference Include="clrzmq-ext, Version=2.2.0.0, Culture=neutral, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\clrzmq.2.2.5\lib\clrzmq-ext.dll</HintPath>
+    <Reference Include="clrzmq-ext">
+      <HintPath>..\SR\packages\clrzmq.2.2.5\lib\clrzmq-ext.dll</HintPath>
+    </Reference>
+    <Reference Include="protobuf-net, Version=2.0.0.668, Culture=neutral, PublicKeyToken=257b51d87d2e4d67, processorArchitecture=MSIL">
+      <HintPath>..\SR\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -69,11 +70,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Client.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Server.cs" />
-    <Compile Include="Session.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -83,6 +83,7 @@
     <None Include="libzmq.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Content Include="protobuf-net.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

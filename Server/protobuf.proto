@@ -1,0 +1,38 @@
+message Message{
+	required MessageType type = 1;
+	required Info info = 1;
+	optional Response response = 2;
+	optional SemOptions semOption = 3;
+	optional CheckBlock checkBlock = 4;
+	
+	enum MessageType {
+		HB = 0;
+		SEM_CREATE = 1;
+		SEM_DESTROY = 2;
+		SEM_P = 3;
+		SEM_V = 4;
+		SEM_CHECK = 5;
+		CHECK_BLOCK = 6;
+	}
+	
+	enum Response{
+		OK = 0;
+		NO = 1;
+		ERROR = 2;
+	}
+	
+	message Info{
+		required int32 ipIndex = 1;
+	}
+	
+	message SemOptions{
+		required string name = 1;
+		required int32 value = 2;
+	}
+	
+	message CheckBlock(
+		required int32 initSem = 1;
+		required int32 sendingSem = 2;
+		required int32 targetSem = 3;	
+	}
+}
