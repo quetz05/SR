@@ -17,11 +17,13 @@ namespace Client
 
             context = new ZMQ.Context();
 
-            socket = context.Socket(ZMQ.SocketType.DEALER);
-            socket.Connect("tcp://" + ip + ":5557");
+            recvSocket = context.Socket(ZMQ.SocketType.DEALER);
+            recvSocket.Bind("tcp://*:6666");
 
+            sendSocket = context.Socket(ZMQ.SocketType.DEALER);
+            sendSocket.Connect("tcp://" + ip + ":5556");
+            
             Test();
-
         }
 
         public void Test()
@@ -32,18 +34,29 @@ namespace Client
                 Message msg = new Message();
 
                 msg.info = new Message.Info();
-                msg.info.ipIndex = 0;
+                msg.info.ipIndex = 10;
                 msg.type = Message.MessageType.HB;
 
                 Send(msg);
 
+                Console.WriteLine(DateTime.Now + " > Wysyłam HB");
 
                 msg = ReceiveMsg();
 
-                
+                if (msg != null)
+                    Console.WriteLine(DateTime.Now + " > OTRZYMAŁEM HB");
+                else
+                    Console.WriteLine(DateTime.Now + " > Nic nie ma");
 
                 Thread.Sleep(5000);
             }
+
+        }
+
+        private void Heartbeat()
+        {
+
+
 
         }
 
@@ -56,14 +69,14 @@ namespace Client
             ProtoBuf.Serializer.Serialize(outputStream, msg);
             byteMsg = outputStream.ToArray();
 
-            socket.Send(byteMsg);
+            sendSocket.Send(byteMsg);
         }
 
 
-        private protobuf.Message ReceiveMsg()
+        private Message ReceiveMsg()
         {
-            byte[] readBuffer = socket.Recv(int.MaxValue);
-            if (readBuffer.Length == 0)
+            byte[] readBuffer = recvSocket.Recv(int.MaxValue);
+            if (readBuffer == null || readBuffer.Length == 0)
                 return null;
 
             MemoryStream inputStream = new MemoryStream(readBuffer);
@@ -136,8 +149,11 @@ namespace Client
         }
 
         public String ip;
-        public ZMQ.Socket socket;
+        public ZMQ.Socket recvSocket;
+        public ZMQ.Socket sendSocket;
         public ZMQ.Context context;
+
+        private Thread HBThread;
 
         //public System.Timers.Timer timerSend;
     }

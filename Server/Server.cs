@@ -49,7 +49,7 @@ namespace SR
 
     class Server
     {
-        public const int ipIndex = 0;
+        public const int ipIndex = 100;
 
         List<Member> Clients;
         List<Member> Servers;
@@ -85,29 +85,30 @@ namespace SR
 
         public Server()
         {
-            // Lista serwerów
+            // Lista serwerów (100 - 103)
             Servers = new List<Member>();
-            //Servers.Add(new Tuple<String, Session, bool>("localhost", new Session("localhost"), false));
+            Servers.Add(new Member("localhost", "Klient ja", new Session("localhost"), false));
 
-            // Lista klientów
+            // Lista klientów (10 - 13)
             Clients = new List<Member>();
-            Clients.Add(new Member("localhost", "Lokalny ja", new Session("localhost"), false));
+            Clients.Add(new Member("xxx", "Serwer ja", new Session("xxx"), false));
+            //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Parowa", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Baryla", new Session("localhost"), false));
-            //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
 
 
-            responder = new Responder("C", Clients,Servers);
+
+            responder = new Responder(Clients, Servers);
 
             semaphores = new Semaphores();
             fSemaphores = new ForeignSemaphores();
 
             context = new ZMQ.Context();
             recvServerSocket = context.Socket(ZMQ.SocketType.DEALER);
-            recvServerSocket.Bind("tcp://*:5556");
+            recvServerSocket.Bind("tcp://*:5555");
 
             recvClientSocket = context.Socket(ZMQ.SocketType.DEALER);
-            recvClientSocket.Bind("tcp://*:5557");
+            recvClientSocket.Bind("tcp://*:5556");
 
             tCliets = new Thread(ReceiveClient);
             tServers = new Thread(ReceiveServer);
@@ -149,7 +150,7 @@ namespace SR
             while (true)
             {
                 Message msg = Receive(recvServerSocket);
-                responder.Add(msg);
+                responder.Add("S", msg);
             }
         }
 
@@ -159,7 +160,7 @@ namespace SR
             while (true)
             {
                 Message msg = Receive(recvClientSocket);
-                responder.Add(msg);
+                responder.Add("C", msg);
             }
         }
 

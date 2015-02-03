@@ -11,19 +11,18 @@ namespace SR
 {
     class Responder
     {
-        private Queue<Message> queue;
+        private Queue<Tuple<String, Message> > queue;
         private Mutex mutex;
-        private String type;
         List<Member> Clients;
         List<Member> Servers;
         List<Task> taskList;
 
 
-        public Responder(String type, List<Member> clients, List<Member> servers)
+        public Responder(List<Member> clients, List<Member> servers)
         {
-            this.queue = new Queue<Message>();
+            this.queue = new Queue<Tuple<String, Message> >();
             this.mutex = new Mutex();
-            this.type = type;
+    
             this.Clients = clients;
             this.Servers = servers;
         }
@@ -32,8 +31,8 @@ namespace SR
         {
             while(true)
             {
-                CheckHeartbeats(Servers);
-                CheckHeartbeats(Clients);
+                CheckHeartbeats(Servers, "S");
+                CheckHeartbeats(Clients, "C");
                 CheckTasks();
                 Respond();
 
@@ -43,23 +42,23 @@ namespace SR
 
         }
 
-        public void Add(Message msg)
+        public void Add(String type, Message msg)
         {
             mutex.WaitOne();
-            queue.Enqueue(msg);
+            queue.Enqueue(new Tuple<String, Message>(type, msg));
             mutex.ReleaseMutex();
         }
 
-        private Message Get()
+        private Tuple<String, Message> Get()
         {          
             mutex.WaitOne();
-            Message msg = queue.Dequeue();
+            Tuple<String, Message> msg = queue.Dequeue();
             mutex.ReleaseMutex();
             return msg;
         }
 
 
-        private void CheckHeartbeats(List<Member> members)
+        private void CheckHeartbeats(List<Member> members, String type)
         {
             foreach (var x in members)
                if(x.alive)
@@ -79,90 +78,99 @@ namespace SR
 
         }
 
-        private List<Member> ChooseMembers()
+        private List<Member> ChooseMembers(String type)
         {
-
-
-            return Servers;
+            if (type == "S")
+                return Servers;
+            else if (type == "C")
+                return Servers;
+            else
+                return null;
         }
 
         private void Respond()
         {
             while(queue.Count != 0)
             {
-                Message msg = Get();
+                Tuple<String, Message> tuple = Get();
+                Message msg = tuple.Item2;
+                String type = tuple.Item1;
+                List<Member> members = ChooseMembers(type);
 
-                if (msg != null)
+                if (msg == null)
                 {
-                    List<Member> members = ChooseMembers();
+                    Console.WriteLine(type + "::" + DateTime.Now + "> Empty message!");
+                    return;
+                }
+                
+                int index = 0;
+                if (type == "C")
+                    index = msg.info.ipIndex - 10;
+                else
+                    index = msg.info.ipIndex - 100;
 
                     switch (msg.type)
                     {
                         case Message.MessageType.HB:
                             {
-                                HB(msg, members);
+                                HB(msg, members, type, index);
                             }
                             break;
                         case Message.MessageType.CHECK_BLOCK:
                             {
-                                CHECK_BLOCK(msg, members);
+                                CHECK_BLOCK(msg, members, type, index);
                             }
                             break;
                         case Message.MessageType.SEM_CHECK:
                             {
-                                SEM_CHECK(msg, members);
+                                SEM_CHECK(msg, members, type, index);
                             }
                             break;
                         case Message.MessageType.SEM_CREATE:
                             {
 
-                                SEM_CREATE(msg, members);
+                                SEM_CREATE(msg, members, type, index);
                             }
                             break;
                         case Message.MessageType.SEM_DESTROY:
                             {
-                                SEM_DESTROY(msg, members);
+                                SEM_DESTROY(msg, members, type, index);
                             }
                             break;
                         case Message.MessageType.SEM_P:
                             {
-                                SEM_P(msg, members);
+                                SEM_P(msg, members, type, index);
                             }
                             break;
                         case Message.MessageType.SEM_V:
                             {
-                                SEM_V(msg, members);
+                                SEM_V(msg, members, type, index);
                             }
                             break;
-                        default: Console.WriteLine(type + "::" + DateTime.Now + "> Invalid MsgType from " + members[msg.info.ipIndex].name);
+                        default: Console.WriteLine(type + "::" + DateTime.Now + "> Invalid MsgType from " + members[index].name);
                             break;
                     }
-                }
-                else
-                    Console.WriteLine(type + "::" + DateTime.Now + "> Empty message from " + members[msg.info.ipIndex].name);
             }
-
-
         }
 
-        private void HB(Message msg, List<Member> Members)
+        private void HB(Message msg, List<Member> Members, String type, int index)
         {
-            if (Members[msg.info.ipIndex].alive == false)
+            if (Members[index].alive == false)
             {
-                Members[msg.info.ipIndex].alive = true;
-                Members[msg.info.ipIndex].session.Connect();
-                Console.WriteLine(type + "::" + DateTime.Now + "> " + Members[msg.info.ipIndex].name + " log in.");
+                Members[index].alive = true;
+                Members[index].session.Connect();
+                Console.WriteLine(type + "::" + DateTime.Now + "> " + Members[index].name + " log in.");
             }
             else
             {
-                Members[msg.info.ipIndex].session.HBTimer.Restart();
-                Console.WriteLine(type + "::" + DateTime.Now + "> Receive HB from " + Members[msg.info.ipIndex].name); 
+                Members[index].session.HBTimer.Restart();
+                Console.WriteLine(type + "::" + DateTime.Now + "> Receive HB from " + Members[index].name); 
             }
         }
 
-        private void SEM_CREATE(Message msg, List<Member> Members)
+        private void SEM_CREATE(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Members[msg.info.ipIndex].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Members[index].name);
 
             if(Server.semaphores.Exist(msg.semOption.name))
             {
@@ -185,33 +193,33 @@ namespace SR
 
         }
 
-        private void SEM_DESTROY(Message msg, List<Member> Members)
+        private void SEM_DESTROY(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CHECK from " + Members[msg.info.ipIndex].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CHECK from " + Members[index].name);
 
         }
 
-        private void SEM_P(Message msg, List<Member> Members)
+        private void SEM_P(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CREATE from " + Members[msg.info.ipIndex].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CREATE from " + Members[index].name);
 
         }
 
-        private void SEM_V(Message msg, List<Member> Members)
+        private void SEM_V(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_DESTROY from " + Members[msg.info.ipIndex].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_DESTROY from " + Members[index].name);
 
         }
 
-        private void SEM_CHECK(Message msg, List<Member> Members)
+        private void SEM_CHECK(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_P from " + Members[msg.info.ipIndex].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_P from " + Members[index].name);
 
         }
 
-        private void CHECK_BLOCK(Message msg, List<Member> Members)
+        private void CHECK_BLOCK(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_V from " + Members[msg.info.ipIndex].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_V from " + Members[index].name);
 
         }
 

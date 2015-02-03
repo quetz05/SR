@@ -42,8 +42,8 @@ namespace SR
         {
             context = new ZMQ.Context();
             socket = context.Socket(ZMQ.SocketType.DEALER);
-            socket.Connect("tcp://" + ip + ":5557");
-
+            socket.Connect("tcp://127.0.0.1:6666");
+            
             state = new State();
 
             HBThread = new Thread(Heartbeat);
@@ -67,16 +67,7 @@ namespace SR
             byte[] byteMsg;
 
             ProtoBuf.Serializer.Serialize(outputStream, msg);
-            
-            using (BinaryReader br = new BinaryReader(outputStream))
-            {
-                byteMsg = br.ReadBytes((int)outputStream.Length);
-            }
-
-            if(type != Message.MessageType.HB)
-            {
-                state.Add(type, msg.semOption.name);
-            }
+            byteMsg = outputStream.ToArray();
 
             sendMutex.WaitOne();
             socket.Send(byteMsg);
@@ -95,7 +86,8 @@ namespace SR
             while(true)
             {
                 Send(msg);
-                Thread.Sleep(HB_TIME);
+                Console.WriteLine("C::" + DateTime.Now + "> Sending heartbeat to " + ip);
+                Thread.Sleep(/*HB_TIME*/5000);
             }
         }
 
