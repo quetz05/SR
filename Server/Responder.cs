@@ -30,6 +30,7 @@ namespace SR
             while(true)
             {
                 CheckHeartbeats();
+                CheckTasks();
                 Respond();
 
 
@@ -66,6 +67,14 @@ namespace SR
                        x.session.Disconnect();
                        Console.WriteLine(type + "::" + DateTime.Now + "> " + x.name + " disconnected.");
                    }
+        }
+
+        private void CheckTasks()
+        {
+
+
+
+
         }
 
         private void Respond()
@@ -138,8 +147,6 @@ namespace SR
                 Members[msg.info.ipIndex].session.HBTimer.Restart();
                 Console.WriteLine(type + "::" + DateTime.Now + "> Receive HB from " + Members[msg.info.ipIndex].name); 
             }
-
-
         }
 
         private void SEM_CREATE(Message msg)

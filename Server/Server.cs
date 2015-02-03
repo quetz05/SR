@@ -15,14 +15,19 @@ namespace SR
 
     class Task
     {
-        Task(Message.MessageType type, int client, int val)
+        public Task(Message.MessageType type, int client, int value)
         {
-
-
+            this.type = type;
+            this.client = client;
+            this.value = value;
+            timer.Start();
         }
 
 
-
+        public Message.MessageType type;
+        public int client;
+        public int value;
+        public System.Diagnostics.Stopwatch timer;
     }
 
     class Member
