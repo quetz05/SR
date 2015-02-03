@@ -11,6 +11,25 @@ using System.Data.Common;
 
 namespace SR
 {
+
+    class State : List<Tuple<int, String>>
+    {
+        public bool Remove(int state, String sem)
+        {
+            return Remove(new Tuple<int, String>(state, sem));
+        }
+
+        public void Add(int state, String sem)
+        {
+            Add(new Tuple<int, String>(state, sem));
+        }
+
+        Tuple<int, String> GetLast()
+        {
+            return this.Last();
+        }
+    }
+
     class Session
     {
         public Session(String ip)
@@ -75,7 +94,7 @@ namespace SR
         //public Thread thread;
         public ZMQ.Socket socket;
         public ZMQ.Context context;
-
+        public State state;
         public System.Timers.Timer timerSend;
         public System.Timers.Timer timerRecv;
 
