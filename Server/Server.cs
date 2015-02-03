@@ -53,8 +53,7 @@ namespace SR
 
         List<Member> Clients;
         List<Member> Servers;
-        Responder clientResponder;
-        Responder serverResponder;
+        Responder responder;
 
         bool CheckServersAlive()
         {
@@ -65,17 +64,24 @@ namespace SR
             return false;
         }
 
-        Semaphores semaphores;
-        ForeignSemaphores fSemaphores;
+        static public Semaphores semaphores;
+        static public ForeignSemaphores fSemaphores;
 
         ZMQ.Context context;
         ZMQ.Socket recvClientSocket;
         ZMQ.Socket recvServerSocket;
         Thread tCliets;
         Thread tServers;
-        Thread tCResponder;
-        Thread tSResponder;
+        Thread tResponder;
 
+
+        private void HBToServers()
+        {
+            //foreach(var x in Servers)
+                
+
+
+        }
 
         public Server()
         {
@@ -91,14 +97,13 @@ namespace SR
             //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
 
 
-            clientResponder = new Responder("C", Clients);
-            serverResponder = new Responder("S", Servers);
+            responder = new Responder("C", Clients,Servers);
 
             semaphores = new Semaphores();
             fSemaphores = new ForeignSemaphores();
 
             context = new ZMQ.Context();
-            recvClientSocket = context.Socket(ZMQ.SocketType.DEALER);
+            recvServerSocket = context.Socket(ZMQ.SocketType.DEALER);
             recvServerSocket.Bind("tcp://*:5556");
 
             recvClientSocket = context.Socket(ZMQ.SocketType.DEALER);
@@ -106,17 +111,22 @@ namespace SR
 
             tCliets = new Thread(ReceiveClient);
             tServers = new Thread(ReceiveServer);
-            tCResponder = new Thread(clientResponder.Run);
-            tSResponder = new Thread(serverResponder.Run);
-
+            tResponder= new Thread(responder.Run);
         }
 
         public void Run()
         {
-            tCResponder.Start();
-            tSResponder.Start();
+            tResponder.Start();
             tServers.Start();
             tCliets.Start();
+            HBToServers();
+        }
+
+        public void Stop()
+        {
+            tResponder.Abort();
+            tServers.Abort();
+            tCliets.Abort();
         }
 
 
@@ -139,7 +149,7 @@ namespace SR
             while (true)
             {
                 Message msg = Receive(recvServerSocket);
-                serverResponder.Add(msg);
+                responder.Add(msg);
             }
         }
 
@@ -149,7 +159,7 @@ namespace SR
             while (true)
             {
                 Message msg = Receive(recvClientSocket);
-                clientResponder.Add(msg);
+                responder.Add(msg);
             }
         }
 
