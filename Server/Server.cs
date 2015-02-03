@@ -13,6 +13,13 @@ using protobuf;
 namespace SR
 {
 
+    class Task
+    {
+        Task(Message.MessageType type, int client, int val);
+
+
+
+    }
 
     class Member
     {
@@ -38,6 +45,25 @@ namespace SR
         List<Member> Clients;
         List<Member> Servers;
 
+        bool CheckServersAlive()
+        {
+            foreach (var x in Servers)
+                if (x.alive)
+                    return true;
+
+            return false;
+        }
+
+        Semaphores semaphores;
+        ForeignSemaphores fSemaphores;
+
+        ZMQ.Context context;
+        ZMQ.Socket recvClientSocket;
+        ZMQ.Socket recvServerSocket;
+        Thread tCliets;
+        Thread tServers;
+
+
         public Server()
         {
             // Lista serwerów
@@ -51,6 +77,9 @@ namespace SR
             //Clients.Add(new Member("localhost", "Baryla", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
 
+
+            semaphores = new Semaphores();
+            fSemaphores = new ForeignSemaphores();
 
             context = new ZMQ.Context();
             recvServerSocket = context.Socket(ZMQ.SocketType.DEALER);
@@ -97,7 +126,6 @@ namespace SR
 
             return msg;
         }
-
 
         public void ReceiveServer()
         {
@@ -207,25 +235,82 @@ namespace SR
                             break;
                         case Message.MessageType.SEM_CREATE:
                             {
-                                String semName = msg.semOption.name;
-
-                                
-
-
-
                                 Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CREATE from " + Clients[msg.info.ipIndex].name);
+
+                                String semName = msg.semOption.name;
+                                if (!semaphores.Exist(semName) && !fSemaphores.Exist(semName))
+                                {
+                                    if(CheckServersAlive())
+                                    {
+                                        // wyślij wiadomość do innych serwerów
+                                    }
+                                    else
+                                    {
+                                        semaphores.CreateSemaphore(semName, msg.semOption.value);
+                                        // wyślij klientowi wiadomość że się udało
+                                    }
+                                }
+                                else 
+                                {
+                                    // wyślij klientowi wiadomość z wyjątkiem
+                                }
                             }
                             break;
                         case Message.MessageType.SEM_DESTROY:
                             {
-
                                 Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_DESTROY from " + Clients[msg.info.ipIndex].name);
+
+                                String semName = msg.semOption.name;
+                                if (semaphores.Exist(semName))
+                                {
+                                    semaphores.DestroySemaphore(semName);
+
+                                }
+                                else if(fSemaphores.Exist(semName))
+                                {
+
+
+
+                                }
+                                else
+                                {
+                                    if (CheckServersAlive())
+                                    {
+                                        // wyślij wiadomość do innych serwerów
+                                    }
+                                    else
+                                    {
+                                        // wyślij klientowi wiadomość z wyjątkiem
+    
+                                    }
+                                }
                             }
                             break;
                         case Message.MessageType.SEM_P:
                             {
-
                                 Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_P from " + Clients[msg.info.ipIndex].name);
+                                String semName = msg.semOption.name;
+                                if (semaphores.Exist(semName))
+                                {
+                                    if(semaphores.P(semName))
+                                    {
+                                        Message retMsg = new Message();
+                                        retMsg.info = new Message.Info();
+                                        
+
+
+                                    }
+
+                                    else
+                                    {
+
+
+                                    }
+
+
+                                }
+
+                                
                             }
                             break;
                         case Message.MessageType.SEM_V:
@@ -242,13 +327,5 @@ namespace SR
                     Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + Clients[msg.info.ipIndex].name);
             }
         }
-
-
-
-        ZMQ.Socket recvClientSocket;
-        ZMQ.Socket recvServerSocket;
-        Thread tCliets;
-        Thread tServers;
-        ZMQ.Context context;
     }
 }

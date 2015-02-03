@@ -8,7 +8,7 @@ namespace SR
 {
     class ForeignSemaphores : Dictionary<String, Tuple<String, int>>
     {
-        public bool IsExist(String name)
+        public bool Exist(String name)
         {
             // send to other servers and wait
             return true;
@@ -47,14 +47,14 @@ namespace SR
 
     class Semaphores : Dictionary<String, Semaphore>
     {
-        public bool IsExist(String name)
+        public bool Exist(String name)
         {
             return ContainsKey(name);
         }
 
         public bool CreateSemaphore(String name, int startValue)
         {
-            if (IsExist(name))
+            if (Exist(name))
                 return false;
 
             Add(name, new Semaphore(name, startValue));
