@@ -15,7 +15,11 @@ namespace SR
 
     class Task
     {
-        Task(Message.MessageType type, int client, int val);
+        Task(Message.MessageType type, int client, int val)
+        {
+
+
+        }
 
 
 
@@ -44,6 +48,8 @@ namespace SR
 
         List<Member> Clients;
         List<Member> Servers;
+        Responder clientResponder;
+        Responder serverResponder;
 
         bool CheckServersAlive()
         {
@@ -62,6 +68,8 @@ namespace SR
         ZMQ.Socket recvServerSocket;
         Thread tCliets;
         Thread tServers;
+        Thread tCResponder;
+        Thread tSResponder;
 
 
         public Server()
@@ -78,11 +86,14 @@ namespace SR
             //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
 
 
+            clientResponder = new Responder("C", Clients);
+            serverResponder = new Responder("S", Servers);
+
             semaphores = new Semaphores();
             fSemaphores = new ForeignSemaphores();
 
             context = new ZMQ.Context();
-            recvServerSocket = context.Socket(ZMQ.SocketType.DEALER);
+            recvClientSocket = context.Socket(ZMQ.SocketType.DEALER);
             recvServerSocket.Bind("tcp://*:5556");
 
             recvClientSocket = context.Socket(ZMQ.SocketType.DEALER);
@@ -90,33 +101,23 @@ namespace SR
 
             tCliets = new Thread(ReceiveClient);
             tServers = new Thread(ReceiveServer);
-
+            tCResponder = new Thread(clientResponder.Run);
+            tSResponder = new Thread(serverResponder.Run);
 
         }
 
         public void Run()
         {
+            tCResponder.Start();
+            tSResponder.Start();
             tServers.Start();
             tCliets.Start();
         }
 
 
-        private protobuf.Message ReceiveClientMsg()
+        private Message Receive(ZMQ.Socket s)
         {
-            byte[] readBuffer = recvClientSocket.Recv(int.MaxValue);
-            if (readBuffer.Length == 0)
-                return null;
-
-            MemoryStream inputStream = new MemoryStream(readBuffer);
-
-            protobuf.Message msg = ProtoBuf.Serializer.Deserialize<protobuf.Message>(inputStream);
-
-            return msg;
-        }
-
-        private protobuf.Message ReceiveServerMsg()
-        {
-            byte[] readBuffer = recvServerSocket.Recv(int.MaxValue);
+            byte[] readBuffer = s.Recv(int.MaxValue);
             if (readBuffer.Length == 0)
                 return null;
 
@@ -130,202 +131,26 @@ namespace SR
         public void ReceiveServer()
         {
             Console.WriteLine("S::" + DateTime.Now + "> Listening started..."); 
-
             while (true)
             {
-                Message msg = ReceiveServerMsg();
-                if (msg != null)
-                {
-                    switch (msg.type)
-                    {
-                        case Message.MessageType.HB:
-                            {
-                                if (Servers[msg.info.ipIndex].alive== false)
-                                {
-                                    Servers[msg.info.ipIndex].alive = true;
-                                    Servers[msg.info.ipIndex].session.Connect();
-                                    Console.WriteLine("C::" + DateTime.Now + "> " + Servers[msg.info.ipIndex].name + " log in.");
-                                }
-                                else
-                                    Console.WriteLine("S::" + DateTime.Now + "> Receive HB from " + Servers[msg.info.ipIndex].name); 
-                            }
-                            break;
-                        case Message.MessageType.CHECK_BLOCK:
-                            {
-
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Servers[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_CHECK:
-                            {
-
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_CHECK from " + Servers[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_CREATE:
-                            {
-
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_CREATE from " + Servers[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_DESTROY:
-                            {
-
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_DESTROY from " + Servers[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_P:
-                            {
-
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_P from " + Servers[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_V:
-                            {
-
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_V from " + Servers[msg.info.ipIndex].name);
-                            }
-                            break;
-                        default: Console.WriteLine("S::" + DateTime.Now + "> Invalid MsgType from " + Servers[msg.info.ipIndex].name);
-                            break;
-
-                    }
-                }
-                else
-                    Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + Servers[msg.info.ipIndex].name);
-
+                Message msg = Receive(recvServerSocket);
+                serverResponder.Add(msg);
             }
         }
 
         public void ReceiveClient()
         {
-            Console.WriteLine("C::" + DateTime.Now + "> Listening started..."); 
-
+            Console.WriteLine("C::" + DateTime.Now + "> Listening started...");
             while (true)
             {
-                Message msg = ReceiveClientMsg();
-                if (msg != null)
-                {
-                    switch (msg.type)
-                    {
-                        case Message.MessageType.HB:
-                            {
-                                if (Clients[msg.info.ipIndex].alive == false)
-                                {
-                                    Clients[msg.info.ipIndex].alive = true;
-                                    Clients[msg.info.ipIndex].session.Connect();
-
-                                    Console.WriteLine("C::" + DateTime.Now + "> "+ Clients[msg.info.ipIndex].name + " log in.");
-                                }
-                                else
-                                    Console.WriteLine("C::" + DateTime.Now + "> Receive HB from " + Clients[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.CHECK_BLOCK:
-                            {
-                                // algorytm
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Clients[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_CHECK:
-                            {
-
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CHECK from " + Clients[msg.info.ipIndex].name);
-                            }
-                            break;
-                        case Message.MessageType.SEM_CREATE:
-                            {
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CREATE from " + Clients[msg.info.ipIndex].name);
-
-                                String semName = msg.semOption.name;
-                                if (!semaphores.Exist(semName) && !fSemaphores.Exist(semName))
-                                {
-                                    if(CheckServersAlive())
-                                    {
-                                        // wyślij wiadomość do innych serwerów
-                                    }
-                                    else
-                                    {
-                                        semaphores.CreateSemaphore(semName, msg.semOption.value);
-                                        // wyślij klientowi wiadomość że się udało
-                                    }
-                                }
-                                else 
-                                {
-                                    // wyślij klientowi wiadomość z wyjątkiem
-                                }
-                            }
-                            break;
-                        case Message.MessageType.SEM_DESTROY:
-                            {
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_DESTROY from " + Clients[msg.info.ipIndex].name);
-
-                                String semName = msg.semOption.name;
-                                if (semaphores.Exist(semName))
-                                {
-                                    semaphores.DestroySemaphore(semName);
-
-                                }
-                                else if(fSemaphores.Exist(semName))
-                                {
-
-
-
-                                }
-                                else
-                                {
-                                    if (CheckServersAlive())
-                                    {
-                                        // wyślij wiadomość do innych serwerów
-                                    }
-                                    else
-                                    {
-                                        // wyślij klientowi wiadomość z wyjątkiem
-    
-                                    }
-                                }
-                            }
-                            break;
-                        case Message.MessageType.SEM_P:
-                            {
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_P from " + Clients[msg.info.ipIndex].name);
-                                String semName = msg.semOption.name;
-                                if (semaphores.Exist(semName))
-                                {
-                                    if(semaphores.P(semName))
-                                    {
-                                        Message retMsg = new Message();
-                                        retMsg.info = new Message.Info();
-                                        
-
-
-                                    }
-
-                                    else
-                                    {
-
-
-                                    }
-
-
-                                }
-
-                                
-                            }
-                            break;
-                        case Message.MessageType.SEM_V:
-                            {
-
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_V from " + Clients[msg.info.ipIndex].name);
-                            }
-                            break;
-                        default: Console.WriteLine("C::" + DateTime.Now + "> Invalid MsgType from " + Clients[msg.info.ipIndex].name);
-                            break;
-                    }          
-                }
-                else
-                    Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + Clients[msg.info.ipIndex].name);
+                Message msg = Receive(recvClientSocket);
+                clientResponder.Add(msg);
             }
         }
+
+
+
+
+
     }
 }

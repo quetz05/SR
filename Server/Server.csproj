@@ -70,6 +70,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Responder.cs" />
     <Compile Include="Semaphore.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="Message.cs" />
