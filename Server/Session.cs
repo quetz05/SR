@@ -12,19 +12,19 @@ using System.Data.Common;
 namespace SR
 {
 
-    class State : List<Tuple<int, String>>
+    class State : List<Tuple<Message.MessageType, String>>
     {
-        public bool Remove(int state, String sem)
+        public bool Remove(Message.MessageType state, String sem)
         {
-            return Remove(new Tuple<int, String>(state, sem));
+            return Remove(new Tuple<Message.MessageType, String>(state, sem));
         }
 
-        public void Add(int state, String sem)
+        public void Add(Message.MessageType state, String sem)
         {
-            Add(new Tuple<int, String>(state, sem));
+            Add(new Tuple<Message.MessageType, String>(state, sem));
         }
 
-        Tuple<int, String> GetLast()
+        Tuple<Message.MessageType, String> GetLast()
         {
             return this.Last();
         }
@@ -35,22 +35,28 @@ namespace SR
         public Session(String ip)
         {
             this.ip = ip;
+            state = new State();
+            sendMutex = new Mutex();
+            context = new ZMQ.Context();
+
         }
 
         public void Connect()
-        {
-            context = new ZMQ.Context();
-
+        {     
             socket = context.Socket(ZMQ.SocketType.DEALER);
             socket.Connect("tcp://" + ip + ":5557");
 
+            HBThread = new Thread(Heartbeat);
+            HBThread.Start();
         }
 
         public void Disconnect()
         {
+            HBThread.Abort();
+            socket.Dispose();
         }
 
-        private void Send(protobuf.Message msg)
+        private void Send(protobuf.Message msg, Message.MessageType type = Message.MessageType.HB)
         {
             MemoryStream outputStream = new MemoryStream();
             byte[] byteMsg;
@@ -61,42 +67,43 @@ namespace SR
             {
                 byteMsg = br.ReadBytes((int)outputStream.Length);
             }
+
+            if(type != Message.MessageType.HB)
+            {
+                state.Add(type, msg.semOption.name);
+            }
+
+            sendMutex.WaitOne();
             socket.Send(byteMsg);
+            sendMutex.ReleaseMutex();
         }
 
 
-
-
-        // Stworzenie nowego Timera, który co 30 sekund będzie wysyłał HB
-        private void SenderTimerStart()
-        {
-            timerSend = new System.Timers.Timer(30000);
-            timerSend.Elapsed += new ElapsedEventHandler(SendHeartbeat);
-            timerSend.Start();
-        }
-
-        //resetowanie timera
-        public void RecvTimerReset()
-        {
-            timerRecv.Stop();
-            timerRecv.Start();
-        }
-
-        static void SendHeartbeat(object sender, ElapsedEventArgs e)
+        // Wysyłanie HB co 30 sekund
+        private void Heartbeat()
         {
             protobuf.Message msg = new protobuf.Message();
             msg.type = Message.MessageType.HB;
-            //send
+            msg.info = new Message.Info();
+            msg.info.ipIndex = Server.ipIndex;
+
+            while(true)
+            {
+                Send(msg);
+                Thread.Sleep(HB_TIME);
+            }
         }
 
 
+
         public String ip;
-        //public Thread thread;
         public ZMQ.Socket socket;
         public ZMQ.Context context;
         public State state;
-        public System.Timers.Timer timerSend;
-        public System.Timers.Timer timerRecv;
+
+        protected Thread HBThread;
+        public const int HB_TIME = 30000; 
+        Mutex sendMutex;
 
     }
 }

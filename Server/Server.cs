@@ -14,22 +14,46 @@ namespace SR
 {
 
 
+    class Member
+    {
+        public Member(String ip, String name, Session session, bool alive)
+        {
+            this.ip = ip;
+            this.name = name;
+            this.session = session;
+            this.alive = alive;
+        }
+
+        public String ip;
+        public Session session;
+        public String name;
+        public bool alive;
+    }
+
 
     class Server
     {
+        public const int ipIndex = 0;
 
-        private String[] ServerList = { "localhost" };
-        private String[] clientsList;
+        bool[] liveClients;
+        bool[] liveServers;
 
-        //List<Session> Clients;
-        //List<Session> Servers;
+        List<Member> Clients;
+        List<Member> Servers;
 
         public Server()
         {
-            clientsList = new String[128];
+            // Lista serwerów
+            //Servers.Add(new Tuple<String, Session, bool>("localhost", new Session("localhost"), false));
+
+            // Lista klientów
+            Clients.Add(new Member("localhost", "Lokalny ja", new Session("localhost"), false));
+            //Clients.Add(new Member("localhost", "Parowa", new Session("localhost"), false));
+            //Clients.Add(new Member("localhost", "Baryla", new Session("localhost"), false));
+            //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
+
 
             context = new ZMQ.Context();
-
             recvServerSocket = context.Socket(ZMQ.SocketType.DEALER);
             recvServerSocket.Bind("tcp://*:5556");
 
@@ -38,9 +62,6 @@ namespace SR
 
             tCliets = new Thread(ReceiveClient);
             tServers = new Thread(ReceiveServer);
-
-            //foreach (var server in ServerList)
-            //    Servers.Add(new Session(server));
 
 
         }
@@ -92,60 +113,60 @@ namespace SR
                     {
                         case Message.MessageType.HB:
                             {
-                                if (clientsList[msg.info.ipIndex] == null)
+                                if (Servers[msg.info.ipIndex].alive== false)
                                 {
-                                    clientsList[msg.info.ipIndex] = "Server " + msg.info.ipIndex;
+                                    Servers[msg.info.ipIndex].alive = true;
 
-                                    Console.WriteLine("C::" + DateTime.Now + "> " + ServerList[msg.info.ipIndex] + " log in.");
+                                    Console.WriteLine("C::" + DateTime.Now + "> " + Servers[msg.info.ipIndex].name + " log in.");
 
                                 }
                                 else
-                                    Console.WriteLine("S::" + DateTime.Now + "> Receive HB from " + ServerList[msg.info.ipIndex]); 
+                                    Console.WriteLine("S::" + DateTime.Now + "> Receive HB from " + Servers[msg.info.ipIndex].name); 
                             }
                             break;
                         case Message.MessageType.CHECK_BLOCK:
                             {
 
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive CHECK_BLOCK from " + ServerList[msg.info.ipIndex]);
+                                Console.WriteLine("S::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Servers[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_CHECK:
                             {
 
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_CHECK from " + ServerList[msg.info.ipIndex]);
+                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_CHECK from " + Servers[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_CREATE:
                             {
 
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_CREATE from " + ServerList[msg.info.ipIndex]);
+                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_CREATE from " + Servers[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_DESTROY:
                             {
 
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_DESTROY from " + ServerList[msg.info.ipIndex]);
+                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_DESTROY from " + Servers[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_P:
                             {
 
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_P from " + ServerList[msg.info.ipIndex]);
+                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_P from " + Servers[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_V:
                             {
 
-                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_V from " + ServerList[msg.info.ipIndex]);
+                                Console.WriteLine("S::" + DateTime.Now + "> Receive SEM_V from " + Servers[msg.info.ipIndex].name);
                             }
                             break;
-                        default: Console.WriteLine("S::" + DateTime.Now + "> Invalid MsgType from " + ServerList[msg.info.ipIndex]);
+                        default: Console.WriteLine("S::" + DateTime.Now + "> Invalid MsgType from " + Servers[msg.info.ipIndex].name);
                             break;
 
                     }
                 }
                 else
-                    Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + ServerList[msg.info.ipIndex]);
+                    Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + Servers[msg.info.ipIndex].name);
 
             }
         }
@@ -163,59 +184,59 @@ namespace SR
                     {
                         case Message.MessageType.HB:
                             {
-                                if (clientsList[msg.info.ipIndex] == null)
+                                if (Clients[msg.info.ipIndex].alive == false)
                                 {
-                                    clientsList[msg.info.ipIndex] = "Client " + msg.info.ipIndex;
+                                    Clients[msg.info.ipIndex].alive = true;
+                                    Clients[msg.info.ipIndex].session.Connect();
 
-                                    Console.WriteLine("C::" + DateTime.Now + "> "+ clientsList[msg.info.ipIndex]+ " log in.");
-
+                                    Console.WriteLine("C::" + DateTime.Now + "> "+ Clients[msg.info.ipIndex].name + " log in.");
                                 }
                                 else
-                                    Console.WriteLine("C::" + DateTime.Now + "> Receive HB from " + clientsList[msg.info.ipIndex]);
+                                    Console.WriteLine("C::" + DateTime.Now + "> Receive HB from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.CHECK_BLOCK:
                             {
 
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive CHECK_BLOCK from " + clientsList[msg.info.ipIndex]);
+                                Console.WriteLine("C::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_CHECK:
                             {
 
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CHECK from " + clientsList[msg.info.ipIndex]);
+                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CHECK from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_CREATE:
                             {
 
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CREATE from " + clientsList[msg.info.ipIndex]);
+                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CREATE from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_DESTROY:
                             {
 
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_DESTROY from " + clientsList[msg.info.ipIndex]);
+                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_DESTROY from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_P:
                             {
 
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_P from " + clientsList[msg.info.ipIndex]);
+                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_P from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
                         case Message.MessageType.SEM_V:
                             {
 
-                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_V from " + clientsList[msg.info.ipIndex]);
+                                Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_V from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
-                        default: Console.WriteLine("C::" + DateTime.Now + "> Invalid MsgType from " + clientsList[msg.info.ipIndex]);
+                        default: Console.WriteLine("C::" + DateTime.Now + "> Invalid MsgType from " + Clients[msg.info.ipIndex].name);
                             break;
                     }          
                 }
                 else
-                    Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + clientsList[msg.info.ipIndex]);
+                    Console.WriteLine("S::" + DateTime.Now + "> Empty message from " + Clients[msg.info.ipIndex].name);
             }
         }
 
