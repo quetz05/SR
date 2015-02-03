@@ -1,0 +1,167 @@
+class State : List<Tuple<int,String> >
+    {
+        public bool Remove(int state, String sem)
+        {
+            return Remove(new Tuple<int, String>(state, sem));
+        }
+
+        public void Add(int state, String sem)
+        {
+            Add(new Tuple<int, String>(state, sem));
+        }
+
+        Tuple<int,String> GetLast()
+        {
+            return this.Last();
+        }
+    }
+
+
+    class ForeignSemaphores : Dictionary<String, Tuple<String, int> >
+    {
+        public bool IsExist(String name)
+        {
+            // send to other servers and wait
+
+            return true;
+        }
+
+        public bool CreateSemaphore(String name, int startValue)
+        {
+
+            // send to other servers and wait
+
+            return true;
+        }
+
+        public bool DestroySemaphore(String name)
+        {
+            // send to other servers and wait
+
+            return true;
+
+        }
+
+        public bool P(String name)
+        {
+            // send to other servers and wait
+
+            return true;
+        }
+
+        public bool V(String name)
+        {
+            // send to other servers and wait
+
+            return true;
+        }
+    }
+
+    class Semaphores : Dictionary<String, Semaphore>
+    {
+        public bool IsExist(String name)
+        {
+            return ContainsKey(name);
+        }
+
+        public bool CreateSemaphore(String name, int startValue)
+        {
+            if (IsExist(name))
+                return false;
+
+            Add(name, new Semaphore(name, startValue));
+            return true;
+        }
+
+        public bool DestroySemaphore(String name)
+        {
+            return Remove(name);
+        }
+
+        public bool P(String name)
+        {
+            return this[name].P();
+        }
+
+        public bool V(String name)
+        {
+            return this[name].V();
+        }
+
+    }
+
+
+    class Semaphore
+    {
+        public Semaphore(String name, int startValue)
+        {
+            this.name = name;
+            this.value = startValue;
+        }
+
+        public bool P()
+        {
+            if (value > 0)
+            {
+                value--;
+                return true;
+            }
+            else
+                return false;
+        }
+
+        public bool V()
+        {
+            value++;
+            return true;
+        }
+
+        String name;
+        int value;
+    }
+
+
+    class ClientSemaphore
+    {
+        static public bool IsExist(String name)
+        {
+            // send query
+
+            // wait on response
+
+            throw new Exception("Can't check if Semaphore " + name + " exist");
+        }
+
+        static public bool CreateSemaphore(String name, int startValue)
+        {
+            // send query
+
+            // wait on response
+            throw new Exception("Can't create Semaphore" + name);
+        }
+
+        static public bool DestroySemaphore(String name)
+        {
+            // send query
+
+            // wait on response
+            throw new Exception("Can't destroy Semaphore" + name);
+
+        }
+
+        static public bool P(String name)
+        {
+            // send query
+
+            // wait on response
+            throw new Exception("Can't do P() on Semaphore " + name );
+        }
+
+        static public bool V(String name)
+        {
+            // send query
+
+            // wait on response
+            throw new Exception("Can't do V() on Semaphore " + name);
+        }
+    }
