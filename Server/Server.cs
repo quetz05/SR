@@ -35,18 +35,17 @@ namespace SR
     {
         public const int ipIndex = 0;
 
-        bool[] liveClients;
-        bool[] liveServers;
-
         List<Member> Clients;
         List<Member> Servers;
 
         public Server()
         {
             // Lista serwerów
+            Servers = new List<Member>();
             //Servers.Add(new Tuple<String, Session, bool>("localhost", new Session("localhost"), false));
 
             // Lista klientów
+            Clients = new List<Member>();
             Clients.Add(new Member("localhost", "Lokalny ja", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Parowa", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Baryla", new Session("localhost"), false));
@@ -116,9 +115,8 @@ namespace SR
                                 if (Servers[msg.info.ipIndex].alive== false)
                                 {
                                     Servers[msg.info.ipIndex].alive = true;
-
+                                    Servers[msg.info.ipIndex].session.Connect();
                                     Console.WriteLine("C::" + DateTime.Now + "> " + Servers[msg.info.ipIndex].name + " log in.");
-
                                 }
                                 else
                                     Console.WriteLine("S::" + DateTime.Now + "> Receive HB from " + Servers[msg.info.ipIndex].name); 
@@ -197,7 +195,7 @@ namespace SR
                             break;
                         case Message.MessageType.CHECK_BLOCK:
                             {
-
+                                // algorytm
                                 Console.WriteLine("C::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Clients[msg.info.ipIndex].name);
                             }
                             break;
@@ -209,6 +207,11 @@ namespace SR
                             break;
                         case Message.MessageType.SEM_CREATE:
                             {
+                                String semName = msg.semOption.name;
+
+                                
+
+
 
                                 Console.WriteLine("C::" + DateTime.Now + "> Receive SEM_CREATE from " + Clients[msg.info.ipIndex].name);
                             }
