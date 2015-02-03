@@ -35,24 +35,29 @@ namespace SR
         public Session(String ip)
         {
             this.ip = ip;
-            state = new State();
-            sendMutex = new Mutex();
-            context = new ZMQ.Context();
-
+            sendMutex = new Mutex();     
         }
 
         public void Connect()
-        {     
+        {
+            context = new ZMQ.Context();
             socket = context.Socket(ZMQ.SocketType.DEALER);
             socket.Connect("tcp://" + ip + ":5557");
 
+            state = new State();
+
             HBThread = new Thread(Heartbeat);
             HBThread.Start();
+
+            HBTimer = new System.Diagnostics.Stopwatch();
+            HBTimer.Start();
         }
 
         public void Disconnect()
         {
             HBThread.Abort();
+            HBTimer.Stop();
+            HBTimer.Reset();
             socket.Dispose();
         }
 
@@ -100,9 +105,11 @@ namespace SR
         public ZMQ.Socket socket;
         public ZMQ.Context context;
         public State state;
+        public System.Diagnostics.Stopwatch HBTimer;
 
         protected Thread HBThread;
-        public const int HB_TIME = 30000; 
+        public const int HB_TIME = 30000;
+        public const int WAIT_TIME = 5000; 
         Mutex sendMutex;
 
     }
