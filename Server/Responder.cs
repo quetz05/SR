@@ -38,8 +38,6 @@ namespace SR
 
                 Thread.Sleep(1);
             }
-
-
         }
 
         public void Add(String type, Message msg)
