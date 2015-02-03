@@ -12,23 +12,23 @@ using System.Data.Common;
 namespace SR
 {
 
-    class State : List<Tuple<Message.MessageType, String>>
-    {
-        public bool Remove(Message.MessageType state, String sem)
-        {
-            return Remove(new Tuple<Message.MessageType, String>(state, sem));
-        }
+    //class State : List<Tuple<Message.MessageType, String>>
+    //{
+    //    public bool Remove(Message.MessageType state, String sem)
+    //    {
+    //        return Remove(new Tuple<Message.MessageType, String>(state, sem));
+    //    }
 
-        public void Add(Message.MessageType state, String sem)
-        {
-            Add(new Tuple<Message.MessageType, String>(state, sem));
-        }
+    //    public void Add(Message.MessageType state, String sem)
+    //    {
+    //        Add(new Tuple<Message.MessageType, String>(state, sem));
+    //    }
 
-        Tuple<Message.MessageType, String> GetLast()
-        {
-            return this.Last();
-        }
-    }
+    //    Tuple<Message.MessageType, String> GetLast()
+    //    {
+    //        return this.Last();
+    //    }
+    //}
 
     class Session
     {

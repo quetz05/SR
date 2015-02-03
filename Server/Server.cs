@@ -12,41 +12,6 @@ using protobuf;
 
 namespace SR
 {
-
-    class Task
-    {
-        public Task(Message.MessageType type, int client, int value)
-        {
-            this.type = type;
-            this.client = client;
-            this.value = value;
-            timer.Start();
-        }
-
-
-        public Message.MessageType type;
-        public int client;
-        public int value;
-        public System.Diagnostics.Stopwatch timer;
-    }
-
-    class Member
-    {
-        public Member(String ip, String name, Session session, bool alive)
-        {
-            this.ip = ip;
-            this.name = name;
-            this.session = session;
-            this.alive = alive;
-        }
-
-        public String ip;
-        public Session session;
-        public String name;
-        public bool alive;
-    }
-
-
     class Server
     {
         public const int ipIndex = 100;
