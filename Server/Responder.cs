@@ -22,6 +22,7 @@ namespace SR
         {
             this.queue = new Queue<Tuple<String, Message> >();
             this.mutex = new Mutex();
+            this.taskList = new List<Task>();
     
             this.Clients = clients;
             this.Servers = servers;
@@ -70,8 +71,14 @@ namespace SR
 
         private void CheckTasks()
         {
+            foreach (var task in taskList)
+                if (task.isObsolete())
+                {
 
+                    // wysłanie klientowi powiadomienia
 
+                    taskList.Remove(task);
+                }
 
 
         }
@@ -172,7 +179,27 @@ namespace SR
 
             if(Server.semaphores.Exist(msg.semOption.name))
             {
-                //semafor istnieje na serwerze
+                Message response = new Message();
+                response.info = new Message.Info();
+                response.info.ipIndex = Server.ipIndex;
+
+                response.semOption = new Message.SemOptions();
+                response.semOption.name = msg.semOption.name;
+                response.semOption.value = msg.semOption.value;
+
+                if(type == "C")
+                {
+                    response.response = Message.Response.ERROR;
+                    Members[index].session.Send(msg);
+
+                }
+                else if(type == "S")
+                {
+                    // ERROR
+
+
+                }
+
 
 
             }

@@ -9,17 +9,26 @@ namespace SR
 {
     class Task
     {
-        public Task(Message.MessageType type, int client, int value)
+        public Task(Message.MessageType type, String semName, int client, int servers)
         {
             this.type = type;
             this.client = client;
-            this.value = value;
+            this.servers = servers;
+            timer = new System.Diagnostics.Stopwatch();
             timer.Start();
+        }
+
+        public bool isObsolete()
+        {
+            if (timer.ElapsedMilliseconds > Session.WAIT_TIME)
+                return true;
+            else
+                return false;
         }
 
         public Message.MessageType type;
         public int client;
-        public int value;
+        public int servers;
         public System.Diagnostics.Stopwatch timer;
     }
 }

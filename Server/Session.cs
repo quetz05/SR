@@ -42,9 +42,9 @@ namespace SR
         {
             context = new ZMQ.Context();
             socket = context.Socket(ZMQ.SocketType.DEALER);
-            socket.Connect("tcp://127.0.0.1:6666");
+            socket.Connect("tcp://" + ip + ":6666");
             
-            state = new State();
+            //state = new State();
 
             HBThread = new Thread(Heartbeat);
             HBThread.Start();
@@ -61,7 +61,7 @@ namespace SR
             socket.Dispose();
         }
 
-        private void Send(protobuf.Message msg, Message.MessageType type = Message.MessageType.HB)
+        public void Send(protobuf.Message msg)
         {
             MemoryStream outputStream = new MemoryStream();
             byte[] byteMsg;
@@ -96,7 +96,6 @@ namespace SR
         public String ip;
         public ZMQ.Socket socket;
         public ZMQ.Context context;
-        public State state;
         public System.Diagnostics.Stopwatch HBTimer;
 
         protected Thread HBThread;
