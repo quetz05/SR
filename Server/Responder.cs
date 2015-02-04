@@ -239,7 +239,7 @@ namespace SR
                 if (Server.semaphores.Exist(msg.semOption.name) || Server.fSemaphores.Exist(msg.semOption.name))
                 {
                     response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ERROR);
-                    Members[index].session.Send(msg);
+                    Members[index].session.Send(response);
                     Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " already exist!");
                 }
                 // Nie mamy wiedzy o semaforze
@@ -252,7 +252,7 @@ namespace SR
                         taskList.Add(new Task(Message.MessageType.SEM_CREATE, msg.semOption.name, msg.info.ipIndex, serversAlive));
                         response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ASK);
                         response.info.client = msg.info.ipIndex;
-                        SendToAll(Servers, msg);
+                        SendToAll(Servers, response);
                         Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " asking...");
                     }
                     // Utworzmy semafor - nie ma przeciwwskazań
@@ -261,8 +261,8 @@ namespace SR
                         Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
                         response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
                         response.info.client = msg.info.ipIndex;
-                        Members[index].session.Send(msg);
-                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " creating.");
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " created.");
                     }
                     
                 }
@@ -280,7 +280,7 @@ namespace SR
                         response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
 
                     response.info.client = msg.info.client;
-                    Members[index].session.Send(msg);
+                    Members[index].session.Send(response);
                 
                 }
                 // odpowiedź na nasze zapytanie
@@ -295,7 +295,7 @@ namespace SR
                         {
                             RemoveTask(msg.type, msg.semOption.name, msg.info.client);
                             response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ERROR);
-                            Members[index].session.Send(msg);
+                            Members[index].session.Send(response);
                             Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " already exist!");
 
                         }
@@ -309,7 +309,7 @@ namespace SR
                                 RemoveTask(msg.type, msg.semOption.name, msg.info.client);
                                 Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
                                 response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
-                                Members[index].session.Send(msg);
+                                Members[index].session.Send(response);
                                 Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " creating.");
                             }
                         }
