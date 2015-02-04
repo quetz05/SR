@@ -224,13 +224,13 @@ namespace SR
             else
             {
                 Members[index].session.HBTimer.Restart();
-                Console.WriteLine(type + "::" + DateTime.Now + "> Receive HB from " + Members[index].name); 
+                Console.WriteLine(type + "::" + DateTime.Now + "> (HB) received from " + Members[index].name); 
             }
         }
 
         private void SEM_CREATE(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CREATE from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) received from " + Members[index].name);
             Message response = null;
 
             if (type == "C")
@@ -329,7 +329,7 @@ namespace SR
 
         private void SEM_DESTROY(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_DESTROY from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) received from " + Members[index].name);
             Message response = null;
 
             if (type == "C")
@@ -339,6 +339,7 @@ namespace SR
                 {
                     if (Server.semaphores.Free(msg.semOption.name))
                     {
+                        Server.semaphores.DestroySemaphore(msg.semOption.name);
                         response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.OK);
                         Members[index].session.Send(response);
                         Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " destroyed");
@@ -466,19 +467,19 @@ namespace SR
 
         private void SEM_P(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_P from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) received from " + Members[index].name);
 
         }
 
         private void SEM_V(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_V from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) received from " + Members[index].name);
 
         }
 
         private void SEM_CHECK(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CHECK from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) received from " + Members[index].name);
             Message response = null;
 
             if (type == "C")
@@ -503,14 +504,13 @@ namespace SR
                         SendToAll(Servers, response);
                         Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " asking...");
                     }
-                    // Semafor istnieje
+                    // Semafor nie istnieje
                     else
                     {
-                        Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
-                        response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
+                        response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.NO);
                         response.info.client = msg.info.ipIndex;
                         Members[index].session.Send(response);
-                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " already exist!");
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " doesn't exist!");
                     }
 
                 }
@@ -577,7 +577,7 @@ namespace SR
 
         private void CHECK_BLOCK(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_V from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) received from " + Members[index].name);
 
         }
 

@@ -36,20 +36,54 @@ namespace Client
 
 
                 Message msg = new Message();
-
-                msg.info = new Message.Info();
-                msg.info.ipIndex = clientIp;
-                msg.type = Message.MessageType.SEM_CREATE;
                 msg.semOption = new Message.SemOptions();
+                msg.info = new Message.Info();
                 msg.semOption.name = "DUPA";
                 msg.semOption.value = 5;
+                msg.info.ipIndex = clientIp;
 
 
-                Thread.Sleep(5000);
 
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_CHECK;
                 Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
 
+
+
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_DESTROY;
+                Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_DESTROY");
+
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_CHECK;
+                Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
+
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_CREATE;
+                Send(msg);
                 Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CREATE");
+
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_CHECK;
+                Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
+
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_DESTROY;
+                Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_DESTROY");
+
+                Thread.Sleep(3000);
+                msg.type = Message.MessageType.SEM_CHECK;
+                Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
+
+
+
+
                 while (true)
                 {
                     msg = ReceiveMsg();
@@ -62,8 +96,11 @@ namespace Client
                     else
                         Console.WriteLine(DateTime.Now + " > Nic nie ma");
 
-                //Thread.Sleep(20000);
-            }
+
+
+
+                    //Thread.Sleep(20000);
+                }
 
         }
 
