@@ -50,8 +50,11 @@ namespace SR
             return Remove(name);
         }
 
-        public void AddWaitingClient(String name, int client)
+        public void AddWaitingClient(String name, int client, int servIndex)
         {
+            if(!Exist(name))
+                Add(name,new ForeignSemaphore(name, servIndex));
+
             this[name].waitingClients.Add(client);
         }
 
@@ -125,7 +128,7 @@ namespace SR
             if (value > 0)
             {
                 value--;
-                clients.Remove(client);
+                clients.Add(client);
                 return true;
             }
             else
@@ -138,7 +141,7 @@ namespace SR
         public bool V(int client)
         {
             value++;
-            clients.Add(client);
+            clients.Remove(client);
             return true;
         }
 
