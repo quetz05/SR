@@ -15,6 +15,7 @@ namespace SR
     class Server
     {
         public const int ipIndex = 100;
+        public static int ownClient = 10;
 
         List<Member> Clients;
         List<Member> Servers;
@@ -68,9 +69,9 @@ namespace SR
             // Lista serwerów (100 - 103)
             Servers = new List<Member>();
             Servers.Add(new Member("xxx", "Serwer ja", new Session("xxx", "6666"), false));
-            Servers.Add(new Member("172.20.10.3", "Sopel", new Session("172.20.10.3", "5555"), false));
-            Servers.Add(new Member("172.20.10.12", "Parowa", new Session("172.20.10.12", "5555"), false));
-            Servers.Add(new Member("172.20.10.14", "Baryla", new Session("172.20.10.14", "5555"), false));
+            Servers.Add(new Member("192.168.62.103", "Sopel", new Session("192.168.62.103", "5555"), false));
+            Servers.Add(new Member("192.168.63.42", "Parowa", new Session("192.168.63.42", "5555"), false));
+            Servers.Add(new Member("192.168.10.14", "Baryla", new Session("172.20.10.14", "5555"), false));
 
             // Lista klientów (10 - 13)
             Clients = new List<Member>();

@@ -489,9 +489,7 @@ namespace SR
                         Members[index].session.Send(response);
                         Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) [" + msg.semOption.name + "] " + Members[index].name + "waiting.");
 
-                        //
-                        // TODO ALGORYTM
-                        //
+                        ALGORITHM(Server.ownClient, msg.info.ipIndex, msg.semOption.name);
                     }
                 }
                 // Semafor istnieje gdzie indziej
@@ -850,10 +848,88 @@ namespace SR
 
         }
 
+
+
+
         private void CHECK_BLOCK(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) received from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> (CHECK_BLOCK) received from " + Members[index].name);
 
+            Message response = null;
+
+            if (type == "C")
+            {
+                Console.WriteLine(type + "::" + DateTime.Now + "> (CHECK_BLOCK) CO TEN KLIENT ODPIER... IGNORUJE?! " + Members[index].name);   
+            }
+            else if (type == "S")
+            {
+                // zapytanie od innego serwera
+                if (Server.semaphores.Exist(msg.checkBlock.targetSem))
+                {
+
+                    if (msg.checkBlock.initClient == Server.ownClient)
+                    {
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (CHECK_BLOCK) BLOCKADE DETECT! Offing client..." + Clients[Server.ownClient].name);
+                        response = CreateMessage(msg, Message.MessageType.CHECK_BLOCK, Message.Response.ERROR);
+                        response.checkBlock.initClient = msg.checkBlock.initClient;
+                        response.checkBlock.sendingClient = msg.checkBlock.sendingClient;
+                        response.checkBlock.targetSem = msg.checkBlock.targetSem;
+                        Clients[Server.ownClient - 10].session.Send(response);
+                    }
+                    else
+                    {
+                        foreach (var sem in Server.fSemaphores)
+                            if (sem.Value.waitingClients.Count > 0)
+                            {
+                                foreach (var client in sem.Value.waitingClients)
+                                    ALGORITHM(msg.checkBlock.initClient, client, sem.Key);
+
+                            }
+                    }
+
+
+
+
+
+
+                    //if (Server.semaphores.Exist(msg.semOption.name))
+                    //    response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
+                    //else
+                    //    response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.NO);
+
+                    //response.info.client = msg.info.client;
+                    //Members[index].session.Send(response);
+
+                }
+                else
+                {
+
+                    // BRAK TEGO SEMAFORA - CO TERAZ?
+                    //Console.WriteLine(type + "::" + DateTime.Now + "> (CHECK_BLOCK) MessageResponse from " + Members[index].name);
+                }
+            }
+            else
+            {
+                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad typ!");
+            }
+
+        }
+
+
+
+        private void ALGORITHM(int client, int sendingClient, String semName)
+        {
+            Message msg = new Message();
+            msg.type = Message.MessageType.CHECK_BLOCK;
+            msg.info = new Message.Info();
+            msg.info.ipIndex = Server.ipIndex;
+            msg.checkBlock = new Message.CheckBlock();
+
+            msg.checkBlock.initClient = client;
+            msg.checkBlock.sendingClient = sendingClient;
+            msg.checkBlock.targetSem = semName;
+
+            SendToAll(Servers, msg);
         }
 
     }

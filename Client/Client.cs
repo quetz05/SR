@@ -39,47 +39,48 @@ namespace Client
                 msg.semOption = new Message.SemOptions();
                 msg.info = new Message.Info();
                 msg.semOption.name = "DUPA";
-                msg.semOption.value = 5;
+                msg.semOption.value = 1;
                 msg.info.ipIndex = clientIp;
 
 
 
-                Thread.Sleep(3000);
-                msg.type = Message.MessageType.SEM_CHECK;
-                Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
-
-
-
-                Thread.Sleep(3000);
-                msg.type = Message.MessageType.SEM_DESTROY;
-                Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_DESTROY");
-
-                Thread.Sleep(3000);
-                msg.type = Message.MessageType.SEM_CHECK;
-                Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
-
-                Thread.Sleep(3000);
+                Console.ReadKey();
                 msg.type = Message.MessageType.SEM_CREATE;
                 Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CREATE");
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CREATE DUPA");
 
-                Thread.Sleep(3000);
-                msg.type = Message.MessageType.SEM_CHECK;
-                Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
 
-                Thread.Sleep(3000);
-                msg.type = Message.MessageType.SEM_DESTROY;
-                Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_DESTROY");
 
-                Thread.Sleep(3000);
-                msg.type = Message.MessageType.SEM_CHECK;
+                Console.ReadKey();
+                msg.type = Message.MessageType.SEM_P;
                 Send(msg);
-                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_P DUPA");
+
+                Console.ReadKey();
+                msg.type = Message.MessageType.SEM_P;
+                msg.semOption.name = "DUPA2";
+                Send(msg);
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_P DUPA2");
+
+                //Console.ReadKey();
+                //msg.type = Message.MessageType.SEM_CREATE;
+                //Send(msg);
+                //Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CREATE");
+
+                //Console.ReadKey();
+                //msg.type = Message.MessageType.SEM_CHECK;
+                //Send(msg);
+                //Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
+
+                //Console.ReadKey();
+                //msg.type = Message.MessageType.SEM_DESTROY;
+                //Send(msg);
+                //Console.WriteLine(DateTime.Now + " > Wysyłam SEM_DESTROY");
+
+                //Console.ReadKey();
+                //msg.type = Message.MessageType.SEM_CHECK;
+                //Send(msg);
+                //Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CHECK");
 
 
 
