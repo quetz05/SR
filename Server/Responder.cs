@@ -347,7 +347,101 @@ namespace SR
 
         private void SEM_CHECK(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_P from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CHECK from " + Members[index].name);
+            Message response = null;
+
+            if (type == "C")
+            {
+                // Semafor istnieje u nas lub u kogoś innego
+                if (Server.semaphores.Exist(msg.semOption.name) || Server.fSemaphores.Exist(msg.semOption.name))
+                {
+                    response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
+                    Members[index].session.Send(response);
+                    Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " already exist!");
+                }
+                // Nie mamy wiedzy o semaforze
+                else
+                {
+                    int serversAlive = ChceckAliveness(Servers);
+                    // Wyślijmy ASKa do reszty serwerów o ile istnieją
+                    if (serversAlive > 0)
+                    {
+                        taskList.Add(new Task(Message.MessageType.SEM_CHECK, msg.semOption.name, msg.info.ipIndex, serversAlive));
+                        response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.ASK);
+                        response.info.client = msg.info.ipIndex;
+                        SendToAll(Servers, response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " asking...");
+                    }
+                    // Semafor istnieje
+                    else
+                    {
+                        Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
+                        response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
+                        response.info.client = msg.info.ipIndex;
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " already exist!");
+                    }
+
+                }
+
+            }
+            // Dostaliśmy wiadomość od serwera
+            else if (type == "S")
+            {
+                // zapytanie od innego serwera
+                if (msg.response == Message.Response.ASK)
+                {
+                    if (Server.semaphores.Exist(msg.semOption.name))
+                        response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
+                    else
+                        response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.NO);
+
+                    response.info.client = msg.info.client;
+                    Members[index].session.Send(response);
+
+                }
+                // odpowiedź na nasze zapytanie
+                else if (msg.response == Message.Response.OK || msg.response == Message.Response.NO)
+                {
+                    Task task = GetTask(msg.type, msg.semOption.name, msg.info.client);
+
+                    if (task != null)
+                    {
+                        // Semafor istnieje gdzie indziej
+                        if (msg.response == Message.Response.OK)
+                        {
+                            RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                            response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
+                            Members[index].session.Send(response);
+                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " already exist!");
+
+                        }
+                        // Semafor nie istnieje
+                        else
+                        {
+                            task.servers--;
+                            // dostaliśmy wszystkie odpowiedzi
+                            if (task.servers == 0)
+                            {
+                                RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                                Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
+                                response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.NO);
+                                Members[index].session.Send(response);
+                                Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " doesn't exist.");
+                            }
+                        }
+                    }
+                }
+                // Typ ERROR - błąd
+                else
+                {
+                    Console.WriteLine(type + "::" + DateTime.Now + "> ERROR MessageResponse from " + Members[index].name);
+                }
+            }
+            else
+            {
+                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad typ!");
+            }
 
         }
 
