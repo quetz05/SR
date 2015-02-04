@@ -6,7 +6,25 @@ using System.Threading.Tasks;
 
 namespace SR
 {
-    class ForeignSemaphores : Dictionary<String, int>
+
+    class ForeignSemaphore
+    {
+        public ForeignSemaphore(String name, int servId)
+        {
+            this.name = name;
+            this.servId = servId;
+            this.clients = new List<int>();
+            this.waitingClients = new List<int>();
+
+        }
+
+        public String name;
+        public int servId;
+        public List<int> clients;
+        public List<int> waitingClients;
+    }
+
+    class ForeignSemaphores : Dictionary<String, ForeignSemaphore>
     {
         public bool Exist(String name)
         {
@@ -18,19 +36,40 @@ namespace SR
             if (Exist(name))
                 return false;
 
-            Add(name, serverId);
+            Add(name, new ForeignSemaphore(name, serverId));
             return true;
         }
 
         public int GetServerId(String name)
         {
-            return this[name];
+            return this[name].servId;
         }
 
         public bool DestroySemaphore(String name)
         {
             return Remove(name);
         }
+
+        public void AddWaitingClient(String name, int client)
+        {
+            this[name].waitingClients.Add(client);
+        }
+
+        public void AddClient(String name, int client)
+        {
+            this[name].clients.Add(client);
+        }
+
+        public bool RemoveClient(String name, int client)
+        {
+            return this[name].clients.Remove(client);
+        }
+
+        public bool RemoveWaitingClient(String name, int client)
+        {
+            return this[name].waitingClients.Remove(client);
+        }
+
     }
 
     class Semaphores : Dictionary<String, Semaphore>
