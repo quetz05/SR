@@ -42,10 +42,11 @@ namespace SR
 
         private void HBToServers()
         {
-            //foreach(var x in Servers)
-                
-
-
+            Message msg = new Message();
+            msg.info = new Message.Info();
+            msg.info.ipIndex = ipIndex;
+            msg.type = Message.MessageType.HB;
+            responder.SendToAll(Servers, msg);
         }
 
         public Server()
@@ -53,9 +54,9 @@ namespace SR
             // Lista serwerów (100 - 103)
             Servers = new List<Member>();
             Servers.Add(new Member("xxx", "Serwer ja", new Session("xxx"), false));
-            //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
-            //Clients.Add(new Member("localhost", "Parowa", new Session("localhost"), false));
-            //Clients.Add(new Member("localhost", "Baryla", new Session("localhost"), false));
+            Servers.Add(new Member("172.20.10.3", "Sopel", new Session("172.20.10.3"), false));
+            Servers.Add(new Member("172.20.10.12", "Parowa", new Session("172.20.10.12"), false));
+            Servers.Add(new Member("172.20.10.14", "Baryla", new Session("172.20.10.14"), false));
 
             // Lista klientów (10 - 13)
             Clients = new List<Member>();
@@ -79,6 +80,9 @@ namespace SR
             tCliets = new Thread(ReceiveClient);
             tServers = new Thread(ReceiveServer);
             tResponder= new Thread(responder.Run);
+
+
+            HBToServers();
         }
 
         public void Run()

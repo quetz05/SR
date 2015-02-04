@@ -48,7 +48,7 @@ namespace SR
             return count;
         }
 
-        private void SendToAll(List<Member> members, Message msg)
+        public void SendToAll(List<Member> members, Message msg)
         {
             foreach (var x in members)
                 if (x.alive == true)
@@ -591,7 +591,7 @@ namespace SR
                             response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.ERROR);
                             Server.fSemaphores.AddWaitingClient(msg.semOption.name, msg.info.client, msg.info.ipIndex);
                             Clients[msg.info.client - 10].session.Send(response);
-                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) " + msg.semOption.name + " can't be destroy!");
+                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) " + msg.semOption.name + " can't be locked!");
                         }
                     }
                 }
@@ -611,6 +611,144 @@ namespace SR
         private void SEM_V(Message msg, List<Member> Members, String type, int index)
         {
             Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) received from " + Members[index].name);
+            Message response = null;
+
+            if (type == "C")
+            {
+                // Semafor istnieje u nas
+                if (Server.semaphores.Exist(msg.semOption.name))
+                {
+                    // udało się zająć semafor
+                    if (Server.semaphores.V(msg.semOption.name, msg.info.ipIndex))
+                    {
+                        response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.OK);
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " unlocked");
+
+                        if(Server.semaphores[msg.semOption.name].waitingClients.Count > 0)
+                        {
+
+
+
+                        }
+                    }
+                    else
+                    {
+                        response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ERROR);
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " can't do V!");
+                    }
+                }
+                // Semafor istnieje gdzie indziej
+                else if (Server.fSemaphores.Exist(msg.semOption.name))
+                {
+                    taskList.Add(new Task(Message.MessageType.SEM_V, msg.semOption.name, msg.info.ipIndex, 1));
+                    int serverId = Server.fSemaphores.GetServerId(msg.semOption.name);
+
+                    response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ASK);
+                    response.info.client = msg.info.ipIndex;
+                    Servers[serverId - 100].session.Send(response);
+                    Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " asking...");
+                }
+                // Nie mamy wiedzy o semaforze
+                else
+                {
+                    int serversAlive = ChceckAliveness(Servers);
+                    // Wyślijmy ASKa do reszty serwerów o ile istnieją
+                    if (serversAlive > 0)
+                    {
+                        taskList.Add(new Task(Message.MessageType.SEM_V, msg.semOption.name, msg.info.ipIndex, serversAlive));
+                        response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ASK);
+                        response.info.client = msg.info.ipIndex;
+                        SendToAll(Servers, response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " asking...");
+                    }
+                    // Semafor nie istnieje - BŁĄD
+                    else
+                    {
+                        response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ERROR);
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " doesn't exist!");
+                    }
+
+                }
+
+            }
+            // Dostaliśmy wiadomość od serwera
+            else if (type == "S")
+            {
+                // zapytanie od innego serwera
+                if (msg.response == Message.Response.ASK)
+                {
+                    if (Server.semaphores.Exist(msg.semOption.name))
+                    {
+                        if (Server.semaphores.V(msg.semOption.name, msg.info.ipIndex))
+                        {
+                            response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.OK);
+                        }
+                        // blad - nie było P
+                        else
+                        {
+                            response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ERROR);
+                        }
+                    }
+                    else
+                        response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.NO);
+
+                    response.info.client = msg.info.client;
+                    Members[index].session.Send(response);
+
+                }
+                // odpowiedź na nasze zapytanie
+                else if (msg.response == Message.Response.OK || msg.response == Message.Response.NO || msg.response == Message.Response.ERROR)
+                {
+                    Task task = GetTask(msg.type, msg.semOption.name, msg.info.client);
+
+                    if (task != null)
+                    {
+                        // Semafor zajęty
+                        if (msg.response == Message.Response.OK)
+                        {
+                            RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                            response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.OK);
+                            Clients[msg.info.client - 10].session.Send(response);
+                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " unlocked");
+
+                        }
+                        // Brak semafora na serwerze
+                        else if (msg.response == Message.Response.NO)
+                        {
+                            task.servers--;
+                            // dostaliśmy wszystkie odpowiedzi
+                            if (task.servers == 0)
+                            {
+                                RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                                response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ERROR);
+                                Clients[msg.info.client - 10].session.Send(response);
+                                Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " doesn't exist!");
+                            }
+                        }
+                        // Jest semafor, ale nie można go zająć
+                        else if (msg.response == Message.Response.ERROR)
+                        {
+                            RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                            response = CreateMessage(msg, Message.MessageType.SEM_V, Message.Response.ERROR);
+                            Server.fSemaphores.AddWaitingClient(msg.semOption.name, msg.info.client, msg.info.ipIndex);
+                            Clients[msg.info.client - 10].session.Send(response);
+                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_V) " + msg.semOption.name + " can't be unlocked!");
+                        }
+                    }
+                }
+                // Typ ERROR - błąd
+                else
+                {
+                    Console.WriteLine(type + "::" + DateTime.Now + "> ERROR MessageResponse from " + Members[index].name);
+                }
+            }
+            else
+            {
+                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad type!");
+            }
 
         }
 

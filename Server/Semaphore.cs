@@ -140,9 +140,15 @@ namespace SR
 
         public bool V(int client)
         {
-            value++;
-            clients.Remove(client);
-            return true;
+            if (clients.Contains(client))
+            {
+                value++;
+                clients.Remove(client);
+                return true;
+            }
+            else
+                return false;
+
         }
 
         public bool Free()
