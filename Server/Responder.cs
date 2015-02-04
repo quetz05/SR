@@ -542,12 +542,12 @@ namespace SR
                         // oczekiwanie na semafor
                         else
                         {
-                            response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.ERROR);
+                            response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.NO);
                             Server.semaphores[msg.semOption.name].waitingClients.Add(msg.info.client);
                         }
                     }
                     else
-                        response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.NO);
+                        response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.ERROR);
 
                     response.info.client = msg.info.client;
                     Members[index].session.Send(response);
@@ -569,8 +569,21 @@ namespace SR
                             Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) " + msg.semOption.name + " locked");
 
                         }
-                        // Brak semafora na serwerze
+                        // Jest semafor, ale nie można go zająć
                         else if (msg.response == Message.Response.NO)
+                        {
+
+                                RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                                response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.NO);
+                                Server.fSemaphores.AddWaitingClient(msg.semOption.name, msg.info.client, msg.info.ipIndex);
+                                Clients[msg.info.client - 10].session.Send(response);
+                                Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) [" + msg.semOption.name + "] " + Clients[Server.ownClient].name + "waiting.");
+
+                                ALGORITHM(Server.ownClient, Server.ownClient, msg.semOption.name);
+
+                        }
+                        // Brak semafora na serwerze
+                        else if (msg.response == Message.Response.ERROR)
                         {
                             task.servers--;
                             // dostaliśmy wszystkie odpowiedzi
@@ -581,15 +594,6 @@ namespace SR
                                 Clients[msg.info.client - 10].session.Send(response);
                                 Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) " + msg.semOption.name + " doesn't exist!");
                             }
-                        }
-                        // Jest semafor, ale nie można go zająć
-                        else if (msg.response == Message.Response.ERROR)
-                        {
-                            RemoveTask(msg.type, msg.semOption.name, msg.info.client);
-                            response = CreateMessage(msg, Message.MessageType.SEM_P, Message.Response.ERROR);
-                            Server.fSemaphores.AddWaitingClient(msg.semOption.name, msg.info.client, msg.info.ipIndex);
-                            Clients[msg.info.client - 10].session.Send(response);
-                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_P) " + msg.semOption.name + " can't be locked!");
                         }
                     }
                 }
