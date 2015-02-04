@@ -42,11 +42,19 @@ namespace SR
 
         private void HBToServers()
         {
+            foreach(var x in Servers)
+            {
+                x.alive = true;
+                x.session.Connect();
+            }
+
             Message msg = new Message();
             msg.info = new Message.Info();
             msg.info.ipIndex = ipIndex;
             msg.type = Message.MessageType.HB;
+            
             responder.SendToAll(Servers, msg);
+
         }
 
         public Server()
@@ -76,13 +84,11 @@ namespace SR
 
             recvClientSocket = context.Socket(ZMQ.SocketType.DEALER);
             recvClientSocket.Bind("tcp://*:5556");
-
+            Console.WriteLine("S::" + DateTime.Now + "> Sending HB to other servers..."); 
             tCliets = new Thread(ReceiveClient);
             tServers = new Thread(ReceiveServer);
             tResponder= new Thread(responder.Run);
 
-
-            HBToServers();
         }
 
         public void Run()
