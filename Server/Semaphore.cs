@@ -6,41 +6,30 @@ using System.Threading.Tasks;
 
 namespace SR
 {
-    class ForeignSemaphores : Dictionary<String, Tuple<String, int>>
+    class ForeignSemaphores : Dictionary<String, int>
     {
         public bool Exist(String name)
         {
             return ContainsKey(name);
         }
 
-        public bool CreateSemaphore(String name, int startValue)
+        public bool AddSemaphore(String name, int serverId)
         {
+            if (Exist(name))
+                return false;
 
-            // send to other servers and wait
-
+            Add(name, serverId);
             return true;
+        }
+
+        public int GetServerId(String name)
+        {
+            return this[name];
         }
 
         public bool DestroySemaphore(String name)
         {
-            // send to other servers and wait
-
-            return true;
-
-        }
-
-        public bool P(String name)
-        {
-            // send to other servers and wait
-
-            return true;
-        }
-
-        public bool V(String name)
-        {
-            // send to other servers and wait
-
-            return true;
+            return Remove(name);
         }
     }
 
@@ -65,16 +54,20 @@ namespace SR
             return Remove(name);
         }
 
-        public bool P(String name)
+        public bool P(String name, int client)
         {
-            return this[name].P();
+            return this[name].P(client);
         }
 
-        public bool V(String name)
+        public bool V(String name, int client)
         {
-            return this[name].V();
+            return this[name].V(client);
         }
 
+        public bool Free(String name)
+        {
+            return this[name].Free();
+        }
     }
 
 
@@ -84,26 +77,43 @@ namespace SR
         {
             this.name = name;
             this.value = startValue;
+            clients = new List<int>();
+            waitingClients = new List<int>();
         }
 
-        public bool P()
+        public bool P(int client)
         {
             if (value > 0)
             {
                 value--;
+                clients.Remove(client);
                 return true;
             }
+            else
+            {
+                waitingClients.Add(client);
+                return false;
+            }
+        }
+
+        public bool V(int client)
+        {
+            value++;
+            clients.Add(client);
+            return true;
+        }
+
+        public bool Free()
+        {
+            if ((clients.Count + waitingClients.Count) == 0)
+                return true;
             else
                 return false;
         }
 
-        public bool V()
-        {
-            value++;
-            return true;
-        }
-
         String name;
         int value;
+        public List<int> clients;
+        public List<int> waitingClients;
     }
 }

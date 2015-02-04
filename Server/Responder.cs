@@ -295,7 +295,7 @@ namespace SR
                         {
                             RemoveTask(msg.type, msg.semOption.name, msg.info.client);
                             response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ERROR);
-                            Members[index].session.Send(response);
+                            Clients[msg.info.client - 10].session.Send(response);
                             Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " already exist!");
 
                         }
@@ -309,7 +309,7 @@ namespace SR
                                 RemoveTask(msg.type, msg.semOption.name, msg.info.client);
                                 Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
                                 response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
-                                Members[index].session.Send(response);
+                                Clients[msg.info.client - 10].session.Send(response);
                                 Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " creating.");
                             }
                         }
@@ -323,25 +323,156 @@ namespace SR
             }
             else
             {
-                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad typ!");
+                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad type!");
             }
         }
 
         private void SEM_DESTROY(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CHECK from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_DESTROY from " + Members[index].name);
+            Message response = null;
+
+            if (type == "C")
+            {
+                // Semafor istnieje u nas
+                if (Server.semaphores.Exist(msg.semOption.name))
+                {
+                    if (Server.semaphores.Free(msg.semOption.name))
+                    {
+                        response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.OK);
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " destroyed");
+
+                    }
+                    else
+                    {
+                        response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ERROR);
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " can't be destroyed!");
+                    }
+                }
+                // Semafor istnieje gdzie indziej
+                else if(Server.fSemaphores.Exist(msg.semOption.name))
+                {
+                    taskList.Add(new Task(Message.MessageType.SEM_DESTROY, msg.semOption.name, msg.info.ipIndex, 1));
+                    int serverId = Server.fSemaphores.GetServerId(msg.semOption.name);
+
+                    response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ASK);
+                    response.info.client = msg.info.ipIndex;
+                    Servers[serverId].session.Send(response);
+                    Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " asking...");
+                }
+                // Nie mamy wiedzy o semaforze
+                else
+                {
+                    int serversAlive = ChceckAliveness(Servers);
+                    // Wyślijmy ASKa do reszty serwerów o ile istnieją
+                    if (serversAlive > 0)
+                    {
+                        taskList.Add(new Task(Message.MessageType.SEM_DESTROY, msg.semOption.name, msg.info.ipIndex, serversAlive));
+                        response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ASK);
+                        response.info.client = msg.info.ipIndex;
+                        SendToAll(Servers, response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " asking...");
+                    }
+                    // Semafor nie istnieje - BŁĄD
+                    else
+                    {
+                        response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ERROR);
+                        Members[index].session.Send(response);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " can't be destroyed!");
+                    }
+
+                }
+
+            }
+            // Dostaliśmy wiadomość od serwera
+            else if (type == "S")
+            {
+                // zapytanie od innego serwera
+                if (msg.response == Message.Response.ASK)
+                {
+                    if (Server.semaphores.Exist(msg.semOption.name))
+                    {
+                        if (Server.semaphores.Free(msg.semOption.name))
+                        {
+                            Server.semaphores.DestroySemaphore(msg.semOption.name);
+                            response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.OK);
+                        }
+                        else
+                        {
+                            response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ERROR);
+                            response.info.client = msg.info.client;
+                        }
+                    }
+                    else
+                        response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.NO);
+
+                    response.info.client = msg.info.client;
+                    Members[index].session.Send(response);
+
+                }
+                // odpowiedź na nasze zapytanie
+                else if (msg.response == Message.Response.OK || msg.response == Message.Response.NO || msg.response == Message.Response.ERROR)
+                {
+                    Task task = GetTask(msg.type, msg.semOption.name, msg.info.client);
+
+                    if (task != null)
+                    {
+                        // Semafor został zniszczony
+                        if (msg.response == Message.Response.OK)
+                        {
+                            RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                            response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.OK);
+                            Clients[msg.info.client - 10].session.Send(response);
+                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " destroyed");
+
+                        }
+                        // Brak semafora na serwerze
+                        else if (msg.response == Message.Response.NO)
+                        {
+                            task.servers--;
+                            // dostaliśmy wszystkie odpowiedzi
+                            if (task.servers == 0)
+                            {
+                                RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                                response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ERROR);
+                                Clients[msg.info.client - 10].session.Send(response);
+                                Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " doesn't exist!");
+                            }
+                        }
+                        // Jest semafor, ale nie można go zniszczyc
+                        else if (msg.response == Message.Response.ERROR)
+                        {
+                             RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                             response = CreateMessage(msg, Message.MessageType.SEM_DESTROY, Message.Response.ERROR);
+                             Clients[msg.info.client - 10].session.Send(response);
+                             Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_DESTROY) " + msg.semOption.name + " can't be destroy!");
+                        }
+                    }
+                }
+                // Typ ERROR - błąd
+                else
+                {
+                    Console.WriteLine(type + "::" + DateTime.Now + "> ERROR MessageResponse from " + Members[index].name);
+                }
+            }
+            else
+            {
+                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad type!");
+            }
 
         }
 
         private void SEM_P(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CREATE from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_P from " + Members[index].name);
 
         }
 
         private void SEM_V(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_DESTROY from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_V from " + Members[index].name);
 
         }
 
@@ -412,7 +543,7 @@ namespace SR
                         {
                             RemoveTask(msg.type, msg.semOption.name, msg.info.client);
                             response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.OK);
-                            Members[index].session.Send(response);
+                            Clients[msg.info.client - 10].session.Send(response);
                             Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " already exist!");
 
                         }
@@ -424,9 +555,8 @@ namespace SR
                             if (task.servers == 0)
                             {
                                 RemoveTask(msg.type, msg.semOption.name, msg.info.client);
-                                Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
                                 response = CreateMessage(msg, Message.MessageType.SEM_CHECK, Message.Response.NO);
-                                Members[index].session.Send(response);
+                                Clients[msg.info.client - 10].session.Send(response);
                                 Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CHECK) " + msg.semOption.name + " doesn't exist.");
                             }
                         }
