@@ -44,8 +44,11 @@ namespace SR
         {
             foreach(var x in Servers)
             {
-                x.alive = true;
-                x.session.Connect();
+                if(x.ip != "xxx")
+                {
+                    x.session.Connect();
+                    x.alive = true;
+                }
             }
 
             Message msg = new Message();
@@ -54,21 +57,20 @@ namespace SR
             msg.type = Message.MessageType.HB;
             
             responder.SendToAll(Servers, msg);
-
         }
 
         public Server()
         {
             // Lista serwerów (100 - 103)
             Servers = new List<Member>();
-            Servers.Add(new Member("xxx", "Serwer ja", new Session("xxx"), false));
-            Servers.Add(new Member("172.20.10.3", "Sopel", new Session("172.20.10.3"), false));
-            Servers.Add(new Member("172.20.10.12", "Parowa", new Session("172.20.10.12"), false));
-            Servers.Add(new Member("172.20.10.14", "Baryla", new Session("172.20.10.14"), false));
+            Servers.Add(new Member("xxx", "Serwer ja", new Session("xxx", "6666"), false));
+            Servers.Add(new Member("172.20.10.3", "Sopel", new Session("172.20.10.3", "5555"), false));
+            Servers.Add(new Member("172.20.10.12", "Parowa", new Session("172.20.10.12", "5555"), false));
+            Servers.Add(new Member("172.20.10.14", "Baryla", new Session("172.20.10.14", "5555"), false));
 
             // Lista klientów (10 - 13)
             Clients = new List<Member>();
-            Clients.Add(new Member("localhost", "Klient ja", new Session("localhost"), false));
+            Clients.Add(new Member("localhost", "Klient ja", new Session("localhost", "6666"), false));
 
 
 
@@ -96,6 +98,7 @@ namespace SR
             tResponder.Start();
             tServers.Start();
             tCliets.Start();
+            Thread.Sleep(1000);
             HBToServers();
         }
 

@@ -11,46 +11,39 @@ using System.Data.Common;
 
 namespace SR
 {
-
-    //class State : List<Tuple<Message.MessageType, String>>
-    //{
-    //    public bool Remove(Message.MessageType state, String sem)
-    //    {
-    //        return Remove(new Tuple<Message.MessageType, String>(state, sem));
-    //    }
-
-    //    public void Add(Message.MessageType state, String sem)
-    //    {
-    //        Add(new Tuple<Message.MessageType, String>(state, sem));
-    //    }
-
-    //    Tuple<Message.MessageType, String> GetLast()
-    //    {
-    //        return this.Last();
-    //    }
-    //}
-
     class Session
     {
-        public Session(String ip)
+
+        public String ip;
+        public String port;
+        public ZMQ.Socket socket;
+        public ZMQ.Context context;
+        public System.Diagnostics.Stopwatch HBTimer;
+        bool isReady;
+
+        protected Thread HBThread;
+        public const int HB_TIME = 30000;
+        public const int WAIT_TIME = 5000;
+        Mutex sendMutex;
+
+        public Session(String ip, String port)
         {
             this.ip = ip;
+            this.port = port;
             sendMutex = new Mutex();
             isReady = false;
+            HBTimer = new System.Diagnostics.Stopwatch();
+            HBThread = new Thread(Heartbeat);
         }
 
         public void Connect()
         {
             context = new ZMQ.Context();
             socket = context.Socket(ZMQ.SocketType.DEALER);
-            socket.Connect("tcp://" + ip + ":6666");
+            socket.Connect("tcp://" + ip + ":" + port);
             
             //state = new State();
-
-            HBThread = new Thread(Heartbeat);
             HBThread.Start();
-
-            HBTimer = new System.Diagnostics.Stopwatch();
             HBTimer.Start();
             isReady = true;
         }
@@ -97,16 +90,6 @@ namespace SR
 
 
 
-        public String ip;
-        public ZMQ.Socket socket;
-        public ZMQ.Context context;
-        public System.Diagnostics.Stopwatch HBTimer;
-        bool isReady;
-
-        protected Thread HBThread;
-        public const int HB_TIME = 30000;
-        public const int WAIT_TIME = 5000; 
-        Mutex sendMutex;
 
     }
 }
