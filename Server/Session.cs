@@ -20,6 +20,7 @@ namespace SR
         public ZMQ.Context context;
         public System.Diagnostics.Stopwatch HBTimer;
         bool isReady;
+        bool HBSending;
 
         protected Thread HBThread;
         public const int HB_TIME = 30000;
@@ -30,26 +31,35 @@ namespace SR
         {
             this.ip = ip;
             this.port = port;
+            HBSending = false;
             sendMutex = new Mutex();
             isReady = false;
             HBTimer = new System.Diagnostics.Stopwatch();
-            HBThread = new Thread(Heartbeat);
+            
         }
 
-        public void Connect()
+        public void Connect(bool first = false)
         {
+            HBSending = true;
+            HBThread = new Thread(Heartbeat);
             context = new ZMQ.Context();
             socket = context.Socket(ZMQ.SocketType.DEALER);
             socket.Connect("tcp://" + ip + ":" + port);
-            
-            //state = new State();
-            HBThread.Start();
-            HBTimer.Start();
             isReady = true;
+
+
+            if (!first)
+            {
+                HBThread.Start();
+                HBTimer.Start();
+            }
+
+
         }
 
         public void Disconnect()
         {
+            HBSending = false;
             HBThread.Abort();
             HBTimer.Stop();
             HBTimer.Reset();
@@ -80,7 +90,7 @@ namespace SR
             msg.info = new Message.Info();
             msg.info.ipIndex = Server.ipIndex;
 
-            while(true)
+            while(HBSending)
             {
                 Send(msg);
                 Console.WriteLine("C::" + DateTime.Now + "> Sending heartbeat to " + ip);

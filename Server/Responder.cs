@@ -114,7 +114,7 @@ namespace SR
 
                     // wysłanie klientowi powiadomienia
 
-                    taskList.Remove(task);
+                   // taskList.Remove(task);
                 }
 
 
