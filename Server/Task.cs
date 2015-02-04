@@ -14,6 +14,7 @@ namespace SR
             this.type = type;
             this.client = client;
             this.servers = servers;
+            this.semName = semName;
             timer = new System.Diagnostics.Stopwatch();
             timer.Start();
         }
@@ -27,6 +28,7 @@ namespace SR
         }
 
         public Message.MessageType type;
+        public String semName;
         public int client;
         public int servers;
         public System.Diagnostics.Stopwatch timer;

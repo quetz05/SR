@@ -52,14 +52,15 @@ namespace SR
         {
             // Lista serwerów (100 - 103)
             Servers = new List<Member>();
-            Servers.Add(new Member("localhost", "Klient ja", new Session("localhost"), false));
-
-            // Lista klientów (10 - 13)
-            Clients = new List<Member>();
-            Clients.Add(new Member("xxx", "Serwer ja", new Session("xxx"), false));
+            Servers.Add(new Member("xxx", "Serwer ja", new Session("xxx"), false));
             //Clients.Add(new Member("localhost", "Sopel", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Parowa", new Session("localhost"), false));
             //Clients.Add(new Member("localhost", "Baryla", new Session("localhost"), false));
+
+            // Lista klientów (10 - 13)
+            Clients = new List<Member>();
+            Clients.Add(new Member("localhost", "Klient ja", new Session("localhost"), false));
+
 
 
 

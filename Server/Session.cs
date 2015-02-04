@@ -35,7 +35,8 @@ namespace SR
         public Session(String ip)
         {
             this.ip = ip;
-            sendMutex = new Mutex();     
+            sendMutex = new Mutex();
+            isReady = false;
         }
 
         public void Connect()
@@ -51,6 +52,7 @@ namespace SR
 
             HBTimer = new System.Diagnostics.Stopwatch();
             HBTimer.Start();
+            isReady = true;
         }
 
         public void Disconnect()
@@ -63,6 +65,8 @@ namespace SR
 
         public void Send(protobuf.Message msg)
         {
+            while (!isReady);
+
             MemoryStream outputStream = new MemoryStream();
             byte[] byteMsg;
 
@@ -87,7 +91,7 @@ namespace SR
             {
                 Send(msg);
                 Console.WriteLine("C::" + DateTime.Now + "> Sending heartbeat to " + ip);
-                Thread.Sleep(/*HB_TIME*/5000);
+                Thread.Sleep(HB_TIME);
             }
         }
 
@@ -97,6 +101,7 @@ namespace SR
         public ZMQ.Socket socket;
         public ZMQ.Context context;
         public System.Diagnostics.Stopwatch HBTimer;
+        bool isReady;
 
         protected Thread HBThread;
         public const int HB_TIME = 30000;

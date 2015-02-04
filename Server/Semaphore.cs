@@ -10,8 +10,7 @@ namespace SR
     {
         public bool Exist(String name)
         {
-            // send to other servers and wait
-            return true;
+            return ContainsKey(name);
         }
 
         public bool CreateSemaphore(String name, int startValue)

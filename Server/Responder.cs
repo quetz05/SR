@@ -18,6 +18,43 @@ namespace SR
         List<Task> taskList;
 
 
+        private Task GetTask(Message.MessageType type, String semName, int client)
+        {
+            foreach (var x in taskList)
+                if (x.client == client && x.type == type && x.semName == semName)
+                    return x;
+
+            return null;
+        }
+
+        private bool RemoveTask(Message.MessageType type, String semName, int client)
+        {
+            foreach (var x in taskList)
+                if (x.client == client && x.type == type && x.semName == semName)
+                {
+                    taskList.Remove(x);
+                    return true;
+                }
+
+            return false;
+        }
+
+        private int ChceckAliveness(List<Member> members)
+        {
+            int count = 0;
+            foreach (var x in members)
+                if (x.alive == true)
+                    count++;
+            return count;
+        }
+
+        private void SendToAll(List<Member> members, Message msg)
+        {
+            foreach (var x in members)
+                if (x.alive == true)
+                        x.session.Send(msg);
+        }
+
         public Responder(List<Member> clients, List<Member> servers)
         {
             this.queue = new Queue<Tuple<String, Message> >();
@@ -88,9 +125,27 @@ namespace SR
             if (type == "S")
                 return Servers;
             else if (type == "C")
-                return Servers;
+                return Clients;
             else
                 return null;
+        }
+
+        static public Message CreateMessage(Message receiveMsg, Message.MessageType type, Message.Response resp)
+        {
+            Message response = new Message();
+            response.type = type;
+            response.info = new Message.Info();
+            response.info.ipIndex = Server.ipIndex;
+            response.response = resp;
+
+            if (type == Message.MessageType.SEM_CHECK || type == Message.MessageType.SEM_CREATE || type == Message.MessageType.SEM_DESTROY ||
+                type == Message.MessageType.SEM_P || type == Message.MessageType.SEM_V)
+            {
+                response.semOption = new Message.SemOptions();
+                response.semOption.name = receiveMsg.semOption.name;
+                response.semOption.value = receiveMsg.semOption.value;
+            }
+            return response;
         }
 
         private void Respond()
@@ -175,47 +230,101 @@ namespace SR
 
         private void SEM_CREATE(Message msg, List<Member> Members, String type, int index)
         {
-            Console.WriteLine(type + "::" + DateTime.Now + "> Receive CHECK_BLOCK from " + Members[index].name);
+            Console.WriteLine(type + "::" + DateTime.Now + "> Receive SEM_CREATE from " + Members[index].name);
+            Message response = null;
 
-            if(Server.semaphores.Exist(msg.semOption.name))
+            if (type == "C")
             {
-                Message response = new Message();
-                response.info = new Message.Info();
-                response.info.ipIndex = Server.ipIndex;
-
-                response.semOption = new Message.SemOptions();
-                response.semOption.name = msg.semOption.name;
-                response.semOption.value = msg.semOption.value;
-
-                if(type == "C")
+                // Semafor istnieje u nas lub u kogoś innego - ZWRÓC BLAD
+                if (Server.semaphores.Exist(msg.semOption.name) || Server.fSemaphores.Exist(msg.semOption.name))
                 {
-                    response.response = Message.Response.ERROR;
+                    response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ERROR);
                     Members[index].session.Send(msg);
-
+                    Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " already exist!");
                 }
-                else if(type == "S")
+                // Nie mamy wiedzy o semaforze
+                else
                 {
-                    // ERROR
-
-
+                    int serversAlive = ChceckAliveness(Servers);
+                    // Wyślijmy ASKa do reszty serwerów o ile istnieją
+                    if(serversAlive > 0)
+                    {
+                        taskList.Add(new Task(Message.MessageType.SEM_CREATE, msg.semOption.name, msg.info.ipIndex, serversAlive));
+                        response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ASK);
+                        response.info.client = msg.info.ipIndex;
+                        SendToAll(Servers, msg);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " asking...");
+                    }
+                    // Utworzmy semafor - nie ma przeciwwskazań
+                    else
+                    {
+                        Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
+                        response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
+                        response.info.client = msg.info.ipIndex;
+                        Members[index].session.Send(msg);
+                        Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " creating.");
+                    }
+                    
                 }
-
-
 
             }
-            else if (Server.fSemaphores.Exist(msg.semOption.name))
+            // Dostaliśmy wiadomość od serwera
+            else if (type == "S")
             {
-                //semafor istnieje na innym znanym serwerze
+                // zapytanie od innego serwera
+                if(msg.response == Message.Response.ASK)
+                {
+                    if(Server.semaphores.Exist(msg.semOption.name))
+                        response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.NO);
+                    else
+                        response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
 
+                    response.info.client = msg.info.client;
+                    Members[index].session.Send(msg);
+                
+                }
+                // odpowiedź na nasze zapytanie
+                else if(msg.response == Message.Response.OK || msg.response == Message.Response.NO)
+                {
+                    Task task = GetTask(msg.type, msg.semOption.name, msg.info.client);
+                    
+                    if(task != null)
+                    {
+                        // Semafor istnieje gdzie indziej
+                        if(msg.response == Message.Response.NO)
+                        {
+                            RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                            response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.ERROR);
+                            Members[index].session.Send(msg);
+                            Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " already exist!");
 
+                        }
+                        // Pozwolenie 1 serwera na tworzenie semafora
+                        else
+                        {
+                            task.servers--;
+                            // dostaliśmy wszystkie odpowiedzi
+                            if(task.servers == 0)
+                            {
+                                RemoveTask(msg.type, msg.semOption.name, msg.info.client);
+                                Server.semaphores.CreateSemaphore(msg.semOption.name, msg.semOption.value);
+                                response = CreateMessage(msg, Message.MessageType.SEM_CREATE, Message.Response.OK);
+                                Members[index].session.Send(msg);
+                                Console.WriteLine(type + "::" + DateTime.Now + "> (SEM_CREATE) " + msg.semOption.name + " creating.");
+                            }
+                        }
+                    }
+                }
+                // Typ ERROR - błąd
+                else
+                {
+                    Console.WriteLine(type + "::" + DateTime.Now + "> ERROR MessageResponse from " + Members[index].name);
+                }
             }
             else
             {
-                // nowy task + zapytanie do innych serwerów
-
-
+                Console.WriteLine(type + "::" + DateTime.Now + "> ERROR Bad typ!");
             }
-
         }
 
         private void SEM_DESTROY(Message msg, List<Member> Members, String type, int index)

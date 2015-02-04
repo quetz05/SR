@@ -11,6 +11,8 @@ namespace Client
 {
     class Client
     {
+        const int clientIp = 10;
+
         public Client(String ip)
         {
             this.ip = ip;
@@ -22,6 +24,9 @@ namespace Client
 
             sendSocket = context.Socket(ZMQ.SocketType.DEALER);
             sendSocket.Connect("tcp://" + ip + ":5556");
+
+            HBThread = new Thread(Heartbeat);
+            HBThread.Start();
             
             Test();
         }
@@ -29,35 +34,52 @@ namespace Client
         public void Test()
         {
 
-            while(true)
-            {
+
                 Message msg = new Message();
 
                 msg.info = new Message.Info();
-                msg.info.ipIndex = 10;
-                msg.type = Message.MessageType.HB;
+                msg.info.ipIndex = clientIp;
+                msg.type = Message.MessageType.SEM_CREATE;
+                msg.semOption = new Message.SemOptions();
+                msg.semOption.name = "DUPA";
+                msg.semOption.value = 5;
+
+
+                Thread.Sleep(5000);
 
                 Send(msg);
 
-                Console.WriteLine(DateTime.Now + " > Wysyłam HB");
+                Console.WriteLine(DateTime.Now + " > Wysyłam SEM_CREATE");
+                while (true)
+                {
+                    msg = ReceiveMsg();
 
-                msg = ReceiveMsg();
 
-                if (msg != null)
-                    Console.WriteLine(DateTime.Now + " > OTRZYMAŁEM HB");
-                else
-                    Console.WriteLine(DateTime.Now + " > Nic nie ma");
+                    //Thread.Sleep(5000);
 
-                Thread.Sleep(5000);
+                    if (msg != null)
+                        Console.WriteLine(DateTime.Now + " > OTRZYMAŁEM WIADOMOSC: " + msg.type.ToString() + " " + msg.response.ToString());
+                    else
+                        Console.WriteLine(DateTime.Now + " > Nic nie ma");
+
+                //Thread.Sleep(20000);
             }
 
         }
 
         private void Heartbeat()
         {
+            protobuf.Message msg = new protobuf.Message();
+            msg.type = Message.MessageType.HB;
+            msg.info = new Message.Info();
+            msg.info.ipIndex = clientIp;
 
-
-
+            while (true)
+            {
+                Send(msg);
+                Console.WriteLine("C::" + DateTime.Now + "> Sending heartbeat to " + ip);
+                Thread.Sleep(30000);
+            }
         }
 
 

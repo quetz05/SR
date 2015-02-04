@@ -6,6 +6,7 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
+
 // Generated from: protobuf.proto
 namespace protobuf
 {
@@ -63,6 +64,14 @@ namespace protobuf
             {
                 get { return _ipIndex; }
                 set { _ipIndex = value; }
+            }
+            private int _client = default(int);
+            [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name = @"client", DataFormat = global::ProtoBuf.DataFormat.TwosComplement)]
+            [global::System.ComponentModel.DefaultValue(default(int))]
+            public int client
+            {
+                get { return _client; }
+                set { _client = value; }
             }
             private global::ProtoBuf.IExtension extensionObject;
             global::ProtoBuf.IExtension global::ProtoBuf.IExtensible.GetExtensionObject(bool createIfMissing)
@@ -162,7 +171,10 @@ namespace protobuf
             NO = 1,
 
             [global::ProtoBuf.ProtoEnum(Name = @"ERROR", Value = 2)]
-            ERROR = 2
+            ERROR = 2,
+
+            [global::ProtoBuf.ProtoEnum(Name = @"ASK", Value = 3)]
+            ASK = 3
         }
 
         private global::ProtoBuf.IExtension extensionObject;
